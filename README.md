@@ -24,5 +24,6 @@ REAPER/Scripts/MC Scripts Release/<script-folder>/
 Packages in this repository use:
 
 - Author: `MC Scripts`
-- Category: `MC Scripts Release`
-- Install prefix: `MC Scripts Release/<script-folder>`
+- Repository name: `MC Scripts Release`
+- Category: `<script-folder>`
+- Source file paths: direct package files such as `MediaEye.lua` or `MCAssistant.lua`

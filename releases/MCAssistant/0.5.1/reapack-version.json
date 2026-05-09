@@ -1,17 +1,16 @@
 {
 	"type": "script",
-	"category": "MC Scripts Release",
-	"prefix": "MC Scripts Release/MCAssistant",
+	"category": "MCAssistant",
 	"files": {
-		"MC Scripts Release/MCAssistant/MCAssistant.lua": {
+		"MCAssistant.lua": {
 			"main": true
 		},
-		"MC Scripts Release/MCAssistant/chat.lua": {},
-		"MC Scripts Release/MCAssistant/http.lua": {},
-		"MC Scripts Release/MCAssistant/json.lua": {},
-		"MC Scripts Release/MCAssistant/provider.lua": {},
-		"MC Scripts Release/MCAssistant/tools.lua": {},
-		"MC Scripts Release/MCAssistant/ui.lua": {}
+		"chat.lua": {},
+		"http.lua": {},
+		"json.lua": {},
+		"provider.lua": {},
+		"tools.lua": {},
+		"ui.lua": {}
 	},
 	"version": "0.5.1",
 	"package": "MCAssistant",

@@ -1,32 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
-<index version="1" name="MC Scripts" generated-by="https://www.npmjs.com/package/reapack">
+<index version="1" name="MC Scripts Release" generated-by="https://www.npmjs.com/package/reapack">
 	<metadata>
 		<description>{\rtf1\ansi\fs24{\fs48\b MC Scripts\b}\line\line Unified ReaPack repository for REAPER scripts developed by MC Scripts.\line\line Import this ReaPack repository:\line\line \i\ul text
 https://github.com/Echo722/MC-Scripts/raw/main/index.xml
 \ul0\i0 \line\line Scripts install under:\line\line \i\ul text
 REAPER/Scripts/MC Scripts Release/&lt;script-folder&gt;/
-\ul0\i0 \line\line {\fs24\b Packages\b}\line\line {\par \bullet\tab MCAssistant: in-REAPER AI chat assistant with streaming and batch-operation tools.\line \bullet\tab MediaEye: Media Explorer album art viewer for embedded and sidecar cover images.\line }\line {\fs24\b Release Convention\b}\line\line Packages in this repository use:\line\line {\par \bullet\tab Author: \i\ul MC Scripts\ul0\i0 \line \bullet\tab Category: \i\ul MC Scripts Release\ul0\i0 \line \bullet\tab Install prefix: \i\ul MC Scripts Release/&lt;script-folder&gt;\ul0\i0 \line }\line }</description>
+\ul0\i0 \line\line {\fs24\b Packages\b}\line\line {\par \bullet\tab MCAssistant: in-REAPER AI chat assistant with streaming and batch-operation tools.\line \bullet\tab MediaEye: Media Explorer album art viewer for embedded and sidecar cover images.\line }\line {\fs24\b Release Convention\b}\line\line Packages in this repository use:\line\line {\par \bullet\tab Author: \i\ul MC Scripts\ul0\i0 \line \bullet\tab Repository name: \i\ul MC Scripts Release\ul0\i0 \line \bullet\tab Category: \i\ul &lt;script-folder&gt;\ul0\i0 \line \bullet\tab Source file paths: direct package files such as \i\ul MediaEye.lua\ul0\i0  or \i\ul MCAssistant.lua\ul0\i0 \line }\line }</description>
 	</metadata>
-	<category name="MC Scripts Release">
+	<category name="MCAssistant">
 		<reapack name="MCAssistant" type="script">
 			<metadata>
 			</metadata>
 			<version name="0.5.1" author="MC Scripts" time="2026-05-09T04:15:03.353Z">
-				<source file="MC Scripts Release/MCAssistant/MCAssistant.lua" main="true">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.5.1/MC%20Scripts%20Release/MCAssistant/MCAssistant.lua</source>
-				<source file="MC Scripts Release/MCAssistant/chat.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.5.1/MC%20Scripts%20Release/MCAssistant/chat.lua</source>
-				<source file="MC Scripts Release/MCAssistant/http.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.5.1/MC%20Scripts%20Release/MCAssistant/http.lua</source>
-				<source file="MC Scripts Release/MCAssistant/json.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.5.1/MC%20Scripts%20Release/MCAssistant/json.lua</source>
-				<source file="MC Scripts Release/MCAssistant/provider.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.5.1/MC%20Scripts%20Release/MCAssistant/provider.lua</source>
-				<source file="MC Scripts Release/MCAssistant/tools.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.5.1/MC%20Scripts%20Release/MCAssistant/tools.lua</source>
-				<source file="MC Scripts Release/MCAssistant/ui.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.5.1/MC%20Scripts%20Release/MCAssistant/ui.lua</source>
+				<source file="MCAssistant.lua" main="true">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.5.1/MCAssistant.lua</source>
+				<source file="chat.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.5.1/chat.lua</source>
+				<source file="http.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.5.1/http.lua</source>
+				<source file="json.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.5.1/json.lua</source>
+				<source file="provider.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.5.1/provider.lua</source>
+				<source file="tools.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.5.1/tools.lua</source>
+				<source file="ui.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.5.1/ui.lua</source>
 				<changelog><![CDATA[Move installed files under MC Scripts Release/MCAssistant so ReaPack installs into the MC Scripts Release folder.]]></changelog>
 			</version>
 		</reapack>
+	</category>
+	<category name="MediaEye">
 		<reapack name="MediaEye" type="script">
 			<metadata>
 			</metadata>
 			<version name="2.8" author="MC Scripts" time="2026-05-09T04:25:56.759Z">
-				<source file="MC Scripts Release/MediaEye/MediaEye.lua" main="true">https://github.com/Echo722/MC-Scripts/raw/main/releases/MediaEye/2.8/MC%20Scripts%20Release/MediaEye/MediaEye.lua</source>
+				<source file="MediaEye.lua" main="true">https://github.com/Echo722/MC-Scripts/raw/main/releases/MediaEye/2.8/MediaEye.lua</source>
 				<changelog><![CDATA[Move the ReaPack install path to MC Scripts Release/MediaEye so MC Scripts releases are grouped together.]]></changelog>
 			</version>
 		</reapack>

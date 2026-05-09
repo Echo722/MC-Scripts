@@ -1,9 +1,8 @@
 {
 	"type": "script",
-	"category": "MC Scripts Release",
-	"prefix": "MC Scripts Release/MediaEye",
+	"category": "MediaEye",
 	"files": {
-		"MC Scripts Release/MediaEye/MediaEye.lua": {
+		"MediaEye.lua": {
 			"main": true
 		}
 	},
