@@ -1,0 +1,14 @@
+{
+	"type": "script",
+	"category": "MC Scripts Release",
+	"prefix": "MC Scripts Release/MediaEye",
+	"files": {
+		"MC Scripts Release/MediaEye/MediaEye.lua": {
+			"main": true
+		}
+	},
+	"version": "2.8",
+	"package": "MediaEye",
+	"time": "2026-05-09T04:25:56.759Z",
+	"changeLog": "Move the ReaPack install path to MC Scripts Release/MediaEye so MC Scripts releases are grouped together."
+}

@@ -1,0 +1,19 @@
+{
+	"name": "MC Scripts",
+	"author": "MC Scripts",
+	"readme": "README.md",
+	"url": "https://github.com/Echo722/MC-Scripts/raw/main",
+	"git": true,
+	"packages": {
+		"MCAssistant": {
+			"type": "script",
+			"category": "MC Scripts Release",
+			"description": "In-REAPER AI chat assistant with streaming and batch-operation tools."
+		},
+		"MediaEye": {
+			"type": "script",
+			"category": "MC Scripts Release",
+			"description": "Media Explorer album art viewer for embedded and sidecar cover images."
+		}
+	}
+}
