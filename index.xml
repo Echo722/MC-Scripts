@@ -8,7 +8,7 @@ REAPER/Scripts/MC Scripts Release/&lt;script-folder&gt;/
 \ul0\i0 \line\line {\fs24\b Packages\b}\line\line {\par \bullet\tab MCAssistant: in-REAPER AI chat assistant with streaming and batch-operation tools.\line \bullet\tab MediaEye: Media Explorer album art viewer for embedded and sidecar cover images.\line }\line {\fs24\b Release Convention\b}\line\line Packages in this repository use:\line\line {\par \bullet\tab Author: \i\ul MC Scripts\ul0\i0 \line \bullet\tab Category: \i\ul MC Scripts Release\ul0\i0 \line \bullet\tab Install prefix: \i\ul MC Scripts Release/&lt;script-folder&gt;\ul0\i0 \line }\line }</description>
 	</metadata>
 	<category name="MC Scripts Release">
-		<reapack name="MCAssistant" type="script" desc="In-REAPER AI chat assistant with streaming and batch-operation tools.">
+		<reapack name="MCAssistant" type="script">
 			<metadata>
 			</metadata>
 			<version name="0.5.1" author="MC Scripts" time="2026-05-09T04:15:03.353Z">
@@ -22,7 +22,7 @@ REAPER/Scripts/MC Scripts Release/&lt;script-folder&gt;/
 				<changelog><![CDATA[Move installed files under MC Scripts Release/MCAssistant so ReaPack installs into the MC Scripts Release folder.]]></changelog>
 			</version>
 		</reapack>
-		<reapack name="MediaEye" type="script" desc="Media Explorer album art viewer for embedded and sidecar cover images.">
+		<reapack name="MediaEye" type="script">
 			<metadata>
 			</metadata>
 			<version name="2.8" author="MC Scripts" time="2026-05-09T04:25:56.759Z">

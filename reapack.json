@@ -7,13 +7,11 @@
 	"packages": {
 		"MCAssistant": {
 			"type": "script",
-			"category": "MC Scripts Release",
-			"description": "In-REAPER AI chat assistant with streaming and batch-operation tools."
+			"category": "MC Scripts Release"
 		},
 		"MediaEye": {
 			"type": "script",
-			"category": "MC Scripts Release",
-			"description": "Media Explorer album art viewer for embedded and sidecar cover images."
+			"category": "MC Scripts Release"
 		}
 	}
 }
