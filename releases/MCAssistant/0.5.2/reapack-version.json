@@ -1,0 +1,19 @@
+{
+	"type": "script",
+	"category": "MCAssistant",
+	"files": {
+		"MCAssistant.lua": {
+			"main": true
+		},
+		"chat.lua": {},
+		"http.lua": {},
+		"json.lua": {},
+		"provider.lua": {},
+		"tools.lua": {},
+		"ui.lua": {}
+	},
+	"version": "0.5.2",
+	"package": "MCAssistant",
+	"time": "2026-05-18T00:00:00.000Z",
+	"changeLog": "Rename provider type 'claude' to 'anthropic' so both providers use vendor names (anthropic / openai). 'claude' is kept as a silent alias so existing 0.5.1 configs still load."
+}
