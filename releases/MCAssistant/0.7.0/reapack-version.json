@@ -1,0 +1,17 @@
+{
+  "type": "script",
+  "category": "MCAssistant",
+  "files": {
+    "MCAssistant.lua": { "main": true },
+    "chat.lua": {},
+    "http.lua": {},
+    "json.lua": {},
+    "provider.lua": {},
+    "tools.lua": {},
+    "ui.lua": {}
+  },
+  "version": "0.7.0",
+  "package": "MCAssistant",
+  "time": "2026-05-19T00:00:00.000Z",
+  "changeLog": "Settings overlay with visual web search toggle. Click gear icon to open Settings panel with toggle pill for web search, API key management, and provider config. Replaces text-field toggle (1/0) with click-to-toggle UI. Bug fix: local ui declaration order for callback closures. pcall protection for overlay rendering."
+}
