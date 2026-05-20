@@ -41,6 +41,16 @@ REAPER/Scripts/MC Scripts Release/&lt;script-folder&gt;/
 				<source file="ui.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.7.0/ui.lua</source>
 				<changelog><![CDATA[Settings overlay with visual web search toggle. Click gear icon to open Settings panel with toggle pill for web search, API key management, and provider config. Replaces text-field toggle (1/0) with click-to-toggle UI. Bug fix: local ui declaration order for callback closures. pcall protection for overlay rendering.]]></changelog>
 			</version>
+			<version name="0.8.0" author="MC Scripts" time="2026-05-20T00:00:00.000Z">
+				<source file="MCAssistant.lua" main="true">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.0/MCAssistant.lua</source>
+				<source file="chat.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.0/chat.lua</source>
+				<source file="http.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.0/http.lua</source>
+				<source file="json.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.0/json.lua</source>
+				<source file="provider.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.0/provider.lua</source>
+				<source file="tools.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.0/tools.lua</source>
+				<source file="ui.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.0/ui.lua</source>
+				<changelog><![CDATA[ReaImGui port — native Chinese / Unicode input, no more Ctrl+E modal. Full UI rewrite from gfx to ReaImGui: InputTextMultiline handles IME directly, user messages render as terracotta bubbles, settings popup is an inline editable modal (Provider radio + Base URL / Model / API key / Search key with show/hide toggle), modal dim overlay disabled so main UI isn't greyed when settings opens. Status bar shows just the model name. ✱ thinking spinner pulses, role gaps between turns, ↓ jump-to-latest button when scrolled up. ReaImGui is now a hard dependency (install via ReaPack). chat / provider / http / tools / json unchanged.]]></changelog>
+			</version>
 		</reapack>
 	</category>
 	<category name="MediaEye">

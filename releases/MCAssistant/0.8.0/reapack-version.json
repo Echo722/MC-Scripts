@@ -1,0 +1,17 @@
+{
+  "type": "script",
+  "category": "MCAssistant",
+  "files": {
+    "MCAssistant.lua": { "main": true },
+    "chat.lua": {},
+    "http.lua": {},
+    "json.lua": {},
+    "provider.lua": {},
+    "tools.lua": {},
+    "ui.lua": {}
+  },
+  "version": "0.8.0",
+  "package": "MCAssistant",
+  "time": "2026-05-20T00:00:00.000Z",
+  "changeLog": "ReaImGui port — native Chinese / Unicode input, no more Ctrl+E modal. Full UI rewrite from gfx to ReaImGui: InputTextMultiline handles IME directly, user messages render as terracotta bubbles, settings popup is an inline editable modal (Provider radio + Base URL / Model / API key / Search key with show/hide toggle), modal dim overlay disabled so main UI isn't greyed when settings opens. Status bar shows just the model name. ✱ thinking spinner pulses, role gaps between turns, ↓ jump-to-latest button when scrolled up. ReaImGui is now a hard dependency (install via ReaPack). chat / provider / http / tools / json unchanged."
+}
