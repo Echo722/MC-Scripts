@@ -61,6 +61,18 @@ REAPER/Scripts/MC Scripts Release/&lt;script-folder&gt;/
 				<source file="ui.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.1/ui.lua</source>
 				<changelog><![CDATA[Chat text is selectable + copyable. Drag-select + Ctrl+C now works on user bubbles, AI responses, tool input/output rows, and error messages — ReadOnly InputTextMultiline replaces Text/TextWrapped. Word wrap is done manually (binary search on byte position, utf-8-safe so CJK glyphs don't split) and cached per event so frozen messages don't re-measure each frame. The ✱ thinking spinner placeholder stays non-selectable. Status-bar hint reads '拖选可复制' instead of 'Ctrl+W 关闭'. ui.lua only — chat / provider / http / tools / json untouched.]]></changelog>
 			</version>
+			<version name="0.8.2" author="MC Scripts" time="2026-05-20T07:59:08.170Z">
+				<source file="MCAssistant.lua" main="true">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.2/MCAssistant.lua</source>
+				<source file="base64.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.2/base64.lua</source>
+				<source file="chat.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.2/chat.lua</source>
+				<source file="http.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.2/http.lua</source>
+				<source file="image.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.2/image.lua</source>
+				<source file="json.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.2/json.lua</source>
+				<source file="provider.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.2/provider.lua</source>
+				<source file="tools.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.2/tools.lua</source>
+				<source file="ui.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.2/ui.lua</source>
+				<changelog><![CDATA[Image input for AI vision workflows: paste clipboard images, drag PNG/JPG/GIF/WebP files onto the chat window, or attach files from the picker. Adds pending/image-history thumbnails, 5 MB image validation, model vision warnings, friendlier image API error hints, and new base64.lua/image.lua support modules. chat.lua now carries optional attachments and provider.lua translates image blocks for OpenAI-compatible endpoints.]]></changelog>
+			</version>
 		</reapack>
 	</category>
 	<category name="MediaEye">
