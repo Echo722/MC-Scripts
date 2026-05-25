@@ -1,0 +1,19 @@
+{
+  "type": "script",
+  "category": "MCAssistant",
+  "files": {
+    "MCAssistant.lua": { "main": true },
+    "base64.lua": {},
+    "chat.lua": {},
+    "http.lua": {},
+    "image.lua": {},
+    "json.lua": {},
+    "provider.lua": {},
+    "tools.lua": {},
+    "ui.lua": {}
+  },
+  "version": "0.8.4",
+  "package": "MCAssistant",
+  "time": "2026-05-25T11:45:31.000Z",
+  "changeLog": "Fix: the sent message no longer reappears in the input box after the AI finishes replying. Clearing the input now bumps the InputText's ImGui ID (forcing ReaImGui to drop its cached buffer) and wipes the EEL capture slot (#LastBuf), which went stale while the widget was unrendered during generation and was read back on the first idle frame. The input also re-focuses itself after a send so you can keep typing without clicking back in. ui.lua only."
+}

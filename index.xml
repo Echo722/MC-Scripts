@@ -85,6 +85,18 @@ REAPER/Scripts/MC Scripts Release/&lt;script-folder&gt;/
 				<source file="ui.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.3/ui.lua</source>
 				<changelog><![CDATA[Settings panel restyle (segmented provider toggle, grouped cards, outline/filled buttons) plus two chat-window stability fixes. Crash fix 1: clicking the window during AI generation no longer triggers a Windows TDR/BSOD on affected GPU drivers — the dangerous InputTextMultiline + CallbackAlways + ReadOnly combo is no longer rendered in the busy branch (DrawList_AddText + Dummy preserve the visual slot). Crash fix 2: the EEL InputText capture callback is now ImGui_Attach'd to the ctx at creation, matching how fonts and images are owned; previously ReaImGui could GC it under streaming string pressure and the next InputTextMultiline call would dereference a stale pointer.]]></changelog>
 			</version>
+			<version name="0.8.4" author="MC Scripts" time="2026-05-25T11:45:31.000Z">
+				<source file="MCAssistant.lua" main="true">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.4/MCAssistant.lua</source>
+				<source file="base64.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.4/base64.lua</source>
+				<source file="chat.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.4/chat.lua</source>
+				<source file="http.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.4/http.lua</source>
+				<source file="image.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.4/image.lua</source>
+				<source file="json.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.4/json.lua</source>
+				<source file="provider.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.4/provider.lua</source>
+				<source file="tools.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.4/tools.lua</source>
+				<source file="ui.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.4/ui.lua</source>
+				<changelog><![CDATA[Fix: the sent message no longer reappears in the input box after the AI finishes replying. Clearing the input now bumps the InputText's ImGui ID (forcing ReaImGui to drop its cached buffer) and wipes the EEL capture slot (#LastBuf), which went stale while the widget was unrendered during generation and was read back on the first idle frame. The input also re-focuses itself after a send so you can keep typing without clicking back in. ui.lua only.]]></changelog>
+			</version>
 		</reapack>
 	</category>
 	<category name="MediaEye">
