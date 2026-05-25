@@ -110,6 +110,19 @@ REAPER/Scripts/MC Scripts Release/&lt;script-folder&gt;/
 				<source file="update.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.5/update.lua</source>
 				<changelog><![CDATA[Startup update check. On launch MCAssistant asynchronously fetches the MC-Scripts ReaPack index and, if a newer version is published, shows a confirm dialog: 现在更新 opens the ReaPack browser filtered to MCAssistant, 以后再说 remembers that version so it won't nag again until an even newer one ships. The check is non-blocking and fails silently. Fetch falls back across mirrors (raw.githubusercontent then jsDelivr CDN) so it works whether or not REAPER's curl has a proxy. New module: update.lua.]]></changelog>
 			</version>
+			<version name="0.8.6" author="MC Scripts" time="2026-05-25T13:00:00.000Z">
+				<source file="MCAssistant.lua" main="true">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.6/MCAssistant.lua</source>
+				<source file="base64.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.6/base64.lua</source>
+				<source file="chat.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.6/chat.lua</source>
+				<source file="http.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.6/http.lua</source>
+				<source file="image.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.6/image.lua</source>
+				<source file="json.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.6/json.lua</source>
+				<source file="provider.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.6/provider.lua</source>
+				<source file="tools.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.6/tools.lua</source>
+				<source file="ui.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.6/ui.lua</source>
+				<source file="update.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.6/update.lua</source>
+				<changelog><![CDATA[Fix: the noticeable load delay introduced in 0.8.5 is gone, and the update prompt now persists across launches. The startup update check is throttled to once per 24h via ExtState (last_update_check_at) — most reloads no longer spawn curl, so the window appears instantly. The update notification now persists: the last-known latest version is cached (last_known_latest_version), so if you click "以后再说" the popup will come back on the next launch and keep nagging until you actually update. Previously "以后再说" silenced the prompt until an even newer version shipped. MCAssistant.lua only.]]></changelog>
+			</version>
 		</reapack>
 	</category>
 	<category name="MediaEye">
