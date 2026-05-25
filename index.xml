@@ -97,6 +97,19 @@ REAPER/Scripts/MC Scripts Release/&lt;script-folder&gt;/
 				<source file="ui.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.4/ui.lua</source>
 				<changelog><![CDATA[Fix: the sent message no longer reappears in the input box after the AI finishes replying. Clearing the input now bumps the InputText's ImGui ID (forcing ReaImGui to drop its cached buffer) and wipes the EEL capture slot (#LastBuf), which went stale while the widget was unrendered during generation and was read back on the first idle frame. The input also re-focuses itself after a send so you can keep typing without clicking back in. ui.lua only.]]></changelog>
 			</version>
+			<version name="0.8.5" author="MC Scripts" time="2026-05-25T12:17:59.000Z">
+				<source file="MCAssistant.lua" main="true">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.5/MCAssistant.lua</source>
+				<source file="base64.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.5/base64.lua</source>
+				<source file="chat.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.5/chat.lua</source>
+				<source file="http.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.5/http.lua</source>
+				<source file="image.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.5/image.lua</source>
+				<source file="json.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.5/json.lua</source>
+				<source file="provider.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.5/provider.lua</source>
+				<source file="tools.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.5/tools.lua</source>
+				<source file="ui.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.5/ui.lua</source>
+				<source file="update.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.5/update.lua</source>
+				<changelog><![CDATA[Startup update check. On launch MCAssistant asynchronously fetches the MC-Scripts ReaPack index and, if a newer version is published, shows a confirm dialog: 现在更新 opens the ReaPack browser filtered to MCAssistant, 以后再说 remembers that version so it won't nag again until an even newer one ships. The check is non-blocking and fails silently. Fetch falls back across mirrors (raw.githubusercontent then jsDelivr CDN) so it works whether or not REAPER's curl has a proxy. New module: update.lua.]]></changelog>
+			</version>
 		</reapack>
 	</category>
 	<category name="MediaEye">
