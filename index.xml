@@ -136,6 +136,19 @@ REAPER/Scripts/MC Scripts Release/&lt;script-folder&gt;/
 				<source file="update.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.9.1/update.lua</source>
 				<changelog><![CDATA[Controlled autonomous REAPER Lua execution, with safety hardening. New reaper_lua_execute tool: when the dedicated tools can't express a task, the assistant runs a short generated Lua snippet against REAPER's API. The environment is heavily restricted — no io/os/package/require/debug/coroutine, no pcall/load, no while/repeat/goto, no external-process APIs, no background defer loops, no JS_*/BR_Win32_*/SNM_* APIs, no action system (Main_OnCommand/MIDIEditor_OnCommand/NamedCommandLookup), no ReaPack_*, no script registration, no directory creation. Standard libraries are injected as copies so generated code can't poison globals. Each run is wrapped in one Undo block, captures print output (capped), caps reaper API calls, and the preflight rejects large numeric literals that would drive runaway loops. Every execution must be confirmed by the user before it runs (the generated code is shown in a native dialog; disable via ExtState MCAssistant/lua_exec_confirm=0). Security blocks are answered locally to avoid provider hangs. Note: a CPU loop with a computed bound can still freeze REAPER if approved — review the confirmation before running.]]></changelog>
 			</version>
+			<version name="0.9.2" author="MC Scripts" time="2026-05-26T13:00:00.000Z">
+				<source file="MCAssistant.lua" main="true">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.9.2/MCAssistant.lua</source>
+				<source file="base64.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.9.2/base64.lua</source>
+				<source file="chat.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.9.2/chat.lua</source>
+				<source file="http.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.9.2/http.lua</source>
+				<source file="image.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.9.2/image.lua</source>
+				<source file="json.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.9.2/json.lua</source>
+				<source file="provider.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.9.2/provider.lua</source>
+				<source file="tools.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.9.2/tools.lua</source>
+				<source file="ui.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.9.2/ui.lua</source>
+				<source file="update.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.9.2/update.lua</source>
+				<changelog><![CDATA[Fix laggy / duplicated / dropped text paste in the input box. Ctrl+V used to synchronously spawn PowerShell (Get-Clipboard -Format Image) on every paste to check for a clipboard image, freezing the UI thread for the powershell cold-start. That stall let the held Ctrl+V auto-repeat, so ImGui's native text paste fired twice (and sometimes dropped). Now the clipboard image grab only runs when the clipboard has no text (checked via ImGui_GetClipboardText) — text pastes go straight through ImGui with no process spawn. ui.lua only.]]></changelog>
+			</version>
 		</reapack>
 	</category>
 	<category name="MediaEye">
