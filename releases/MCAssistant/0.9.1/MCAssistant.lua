@@ -1,0 +1,630 @@
+﻿-- @description MCAssistant — In-REAPER AI chat with streaming + batch-operation tools
+-- @version 0.9.1
+-- @author MC Scripts
+-- @about
+--   Chat panel inside REAPER driving batch operations through tool calls.
+--
+--   v0.5.0:
+--     - UI: in-panel text input — type directly in the chat window; no more
+--       modal Send dialog. Multi-line via Shift+Enter; auto-grows up to ~6
+--       lines and scrolls internally beyond.
+--     - UI: streaming feels right — user message appears the instant Enter
+--       is pressed, AI tokens flow in token-by-token.
+--     - UI: Ctrl+V paste (requires SWS extension's CF_GetClipboard).
+--     - UI: settings now opened by clicking the ⚙ icon in the status bar
+--       (S key is no longer a hotkey, since it goes into the buffer).
+--     - UI: visual refresh closer to Claude desktop — warm caret accent,
+--       denser typography (16/12), refined spacing, AI text on the page bg.
+--     - 29 tools covering SFX / Item / Track+FX / MIDI / Region / Project,
+--       including loudness analysis + normalisation and project_render.
+--
+--   Providers (switch via the ⚙ button in the status bar):
+--     - anthropic — Anthropic Messages API (api.anthropic.com or proxy)
+--     - openai    — OpenAI Chat Completions (api.openai.com, OpenRouter,
+--       Groq, DeepSeek, local Ollama at /v1, etc.)
+--
+--   Requires:
+--     - js_ReaScriptAPI extension
+--     - ReaImGui extension (new in 0.8.0 — install via ReaPack)
+--     - Windows with C:\Windows\System32\curl.exe
+--     - API key for one of the supported services
+--
+-- @requires js_ReaScriptAPI, ReaImGui
+-- @changelog
+--   * 0.9.1  Safety hardening for reaper_lua_execute.
+--            - Removed debug.sethook-based instruction watchdog. In REAPER's
+--              main-thread ReaScript environment this can destabilize the host
+--              when interrupting generated code.
+--            - Dangerous identifiers/APIs are now rejected by preflight before
+--              compilation/execution: os/io/package/require/debug/coroutine,
+--              pcall/xpcall/load/loadfile/loadstring, while/repeat/goto,
+--              external process APIs, defer loops, JS_* window APIs,
+--              BR_Win32_* and SNM_* functions.
+--            - Closed the action-system bypass: the reaper proxy now also
+--              blocks Main_OnCommand / Main_OnCommandEx / MIDIEditor_OnCommand /
+--              NamedCommandLookup (could run any installed action or
+--              non-sandboxed script), ReaPack_* (could install packages),
+--              AddRemoveReaScript, and directory-creation APIs.
+--            - Standard libraries (math/string/utf8) are now injected as
+--              shallow copies, so sandboxed code can no longer poison the real
+--              global library tables shared with other ReaScripts.
+--            - print output is capped DURING execution (line count + total
+--              bytes), so a runaway print loop can't OOM REAPER before the
+--              snippet returns. Result carries output_capped.
+--            - Added a reaper.* API call cap for generated snippets.
+--            - Security blocks (both static preflight AND runtime proxy blocks:
+--              blocked field access / API cap / read-only reaper) are answered
+--              locally instead of being sent into a second model round,
+--              avoiding provider hangs after blocked-code tests. Ordinary
+--              compile/runtime errors still return to the model so it can
+--              self-correct. A blocked snippet only short-circuits the turn
+--              when it was the sole tool in the batch.
+--            - Preflight now rejects large numeric literals (e.g. 1e7,
+--              string.rep counts): on the main thread a runaway loop can't be
+--              interrupted (no sethook) and on some machines hard-reboots the
+--              OS, so the only safe lever is to refuse them before execution.
+--            - Per-call confirmation: every reaper_lua_execute now shows the
+--              generated code in a modal and runs only on approval (native
+--              reaper.MB, no ImGui interaction). This is the backstop for
+--              computed loop bounds preflight can't see. Power-user escape
+--              hatch: ExtState MCAssistant/lua_exec_confirm = "0".
+--            - Known limit: a CPU loop with a COMPUTED bound and no reaper
+--              calls can still freeze REAPER if the user approves it — keep an
+--              eye on the confirmation modal.
+--            tools.lua / chat.lua / README / reapack metadata.
+--   * 0.9.0  Controlled autonomous REAPER Lua execution.
+--            - New reaper_lua_execute tool: when the dedicated tools do not
+--              cover a task, the assistant can run a short generated Lua
+--              snippet against REAPER's API.
+--            - The execution environment is restricted: no io/os/package,
+--              require, debug/coroutine access from generated code, external
+--              process APIs, background defer loops, JS_* window APIs,
+--              BR_Win32_* or SNM_* functions.
+--            - Each execution is wrapped in a single Undo block, captures
+--              print output, returns compact JSON-safe values, and enforces
+--              code/output/instruction limits.
+--            tools.lua / chat.lua / ui.lua / README / reapack metadata.
+--   * 0.8.6  Fix: the noticeable load delay introduced in 0.8.5 is gone,
+--            and the update prompt now persists across launches.
+--            - Startup update check is throttled to once per 24h via
+--              ExtState (last_update_check_at). Most reloads no longer
+--              spawn curl, so the window appears instantly.
+--            - Update notification now persists: the last-known latest
+--              version is cached (last_known_latest_version), so if you
+--              click 「以后再说」 the popup will come back on the next
+--              launch and keep nagging until you actually update.
+--              Previously 「以后再说」 silenced the prompt until an even
+--              newer version shipped.
+--            MCAssistant.lua only.
+--   * 0.8.5  Startup update check. On launch MCAssistant asynchronously
+--            fetches the MC-Scripts ReaPack index, and if a newer version
+--            is published it shows a confirm dialog. "现在更新" opens the
+--            ReaPack browser filtered to MCAssistant; "以后再说" remembers
+--            that version so it won't nag again until an even newer one
+--            ships. The check is non-blocking and fails silently — no
+--            network, no ReaPack, or a parse error just skips it. New
+--            module: update.lua.
+--   * 0.8.4  Fix: the sent message no longer reappears in the input box
+--            after the AI finishes replying. Clearing the input now bumps
+--            the InputText's ImGui ID (forcing ReaImGui to drop its cached
+--            buffer) and wipes the EEL capture slot (#LastBuf), which had
+--            gone stale while the widget was unrendered during generation
+--            and was being read back on the first idle frame. The input
+--            also re-focuses itself after a send, so you can keep typing
+--            without clicking back in. ui.lua only.
+--   * 0.8.3  Settings panel restyle + chat-window stability fixes.
+--            - Settings overlay redesigned: provider switch is now a
+--              segmented anthropic/openai toggle; the fields below are
+--              grouped into rounded cards with outline / filled action
+--              buttons. New color tokens (card_bg, segment_on_bg,
+--              btn_outline, status_dot_on, send_text) match the existing
+--              warm-accent palette.
+--            - Crash fix: clicking the window during AI generation no
+--              longer trips a Windows TDR / BSOD on some GPU drivers.
+--              Root cause was the InputTextMultiline + CallbackAlways
+--              + ReadOnly combination being rendered every busy frame.
+--              The busy branch now skips InputTextMultiline entirely
+--              (draws the buffer as static text via DrawList_AddText
+--              and reserves the same vertical slot with Dummy), so the
+--              dangerous flag combo never gets pushed in busy state.
+--            - Crash fix: the EEL function used as the InputText capture
+--              callback is now ImGui_Attach'd to the ctx at creation
+--              (same pattern as fonts and images). Without that attach,
+--              ReaImGui would GC the function under string-allocation
+--              pressure mid-stream and the next InputTextMultiline call
+--              dereferenced a stale pointer ("expected a valid
+--              ImGui_Function*"). ui.lua only.
+--   * 0.8.2  Image input — paste / drag-drop / file picker. Send images
+--            to the AI for visual analysis (like ChatGPT web).
+--            - Ctrl+V pastes the clipboard image into a pending-attach
+--              strip above the input box (PowerShell Get-Clipboard).
+--            - Drag PNG/JPG/GIF/WebP from Explorer onto the chat window.
+--            - 📎 button opens a file picker (requires js_ReaScriptAPI).
+--            - Thumbnails shown in pending strip + user bubbles in history.
+--            - Vision model detection: ⚠ warning when model doesn't match
+--              known vision patterns (claude-3/4, gpt-4o, etc.). Sending
+--              still allowed; API 400 errors get a friendly Chinese hint.
+--            - Image size limit: 5 MB (pre-base64). Formats: PNG, JPG,
+--              GIF, WebP.
+--            - New modules: base64.lua (pure-Lua encoder), image.lua
+--              (clipboard + MIME + load). chat.lua send_user now accepts
+--              optional attachments; provider.lua translates image blocks
+--              for OpenAI-compatible endpoints.
+--   * 0.8.1  Chat text is selectable + copyable. Drag-select + Ctrl+C
+--            now works on user bubbles, AI responses, tool input /
+--            output rows, and error messages. ReadOnly
+--            InputTextMultiline replaces the previous Text /
+--            TextWrapped calls; word wrap is done manually
+--            (binary-search on byte position, utf-8-boundary safe so
+--            CJK glyphs don't split) and cached per event so frozen
+--            messages don't re-measure each frame. The ✱ thinking
+--            spinner placeholder stays non-selectable. Status-bar
+--            hint now reads "拖选可复制" instead of "Ctrl+W 关闭".
+--            ui.lua only — chat / provider / http / tools / json
+--            untouched.
+--   * 0.8.0  ReaImGui port — native Chinese / Unicode input, no more
+--            Ctrl+E modal.
+--            - Full UI rewrite from gfx to ReaImGui. InputTextMultiline
+--              handles IME composition directly, so the Ctrl+E
+--              GetUserInputs workaround is gone. Just type Chinese.
+--            - User messages render as right-aligned terracotta bubbles
+--              (drawn via the window draw list, not BeginChild — earlier
+--              prototypes crashed during streaming when ChildFlags_
+--              AlwaysAutoResize forced re-measurement every frame).
+--            - Settings popup is now an inline ImGui modal with editable
+--              Provider radio (anthropic / openai), Base URL, Model, API
+--              key, Search key fields — replaces the chained
+--              GetUserInputs dialogs. API/Search keys default to masked
+--              with a Show/Hide toggle. The Tavily Search key row only
+--              appears when web search is ON. Modal-dim overlay set
+--              transparent so the main UI isn't greyed; popup itself
+--              uses a distinct lighter bg + visible border + brighter
+--              title bar.
+--            - Status bar shows just the model name (no "openai /"
+--              prefix that read as a vendor name on third-party
+--              providers).
+--            - ✱ thinking spinner is now an alpha-pulsing accent glyph;
+--              role gaps between user↔assistant turns; ↓ 跳到最新
+--              floating button when scrolled up during streaming.
+--            - Hard dependency on ReaImGui added in @requires.
+--            - chat.lua / provider.lua / http.lua / tools.lua /
+--              json.lua untouched — the migration is contained to
+--              ui.lua + the MCAssistant.lua entrypoint.
+--   * 0.7.0  Settings overlay with visual web search toggle. Click the ⚙
+--            gear icon to open a gfx-based Settings panel showing:
+--            - API config (provider/model) with Edit button
+--            - Web Search toggle pill (click to switch ON/OFF)
+--            - Search API key display and Edit Key button
+--            - Done button to close
+--            The old text-field toggle (typing 1/0) is replaced by a visual
+--            click-to-toggle pill. Settings dialog (Edit button) is now a
+--            clean 4-field form (type/base_url/model/api_key). Web search
+--            settings are preserved across provider edits.
+--            Bug fix: moved `local ui` declaration before callback functions
+--            to fix nil-reference when callbacks capture the ui upvalue.
+--            Added pcall protection around overlay rendering to prevent
+--            defer-loop crashes from Lua errors in draw code.
+--   * 0.6.2  Provider-agnostic web search via two new client-side tools:
+--            - web_search(query, max_results): hits Tavily (free 1000/mo)
+--              and returns {title, url, content} snippets. The model gets
+--              a normal tool definition and calls it like any other; we
+--              execute locally and feed results back. Works with ANY
+--              endpoint / API key, including mimo Token Plan that has no
+--              server-side search of its own.
+--            - web_fetch(url, max_bytes, mode): pulls a URL through Jina
+--              Reader by default (HTML → clean markdown, no key needed);
+--              mode='raw' GETs the body as-is for JSON / text endpoints.
+--            Plumbing additions:
+--            - tools.lua: REGISTRY entries can now declare async=true with
+--              start/poll fns. M.dispatch returns a pending wrapper for
+--              async tools; chat.lua polls each tick (new running_tool
+--              state, _poll_running_tool / _finish_tool helpers). UI stays
+--              responsive during the 1-5s search/fetch round-trip.
+--            - http.lua: build_curl_cmd accepts opts.method (default POST,
+--              GET supported); M.start skips --data-binary when body=nil.
+--            - Settings dialog grows a 5th field "Search API key" (Tavily,
+--              tvly-..., optional). When empty, web_search returns a clear
+--              error instead of crashing.
+--            - The 0.6.0 Anthropic server-side web_search injection and the
+--              0.6.0 OpenAI *-search-preview path are still in place;
+--              client-side tools are a parallel mechanism that works on
+--              all the other channels.
+--            - Thinking-mode preservation. Providers like mimo v2/v2.5 and
+--              DeepSeek-R1 stream the model's hidden reasoning via
+--              delta.reasoning_content and REQUIRE that text to be echoed
+--              back as message.reasoning_content on subsequent turns
+--              (otherwise the multi-round tool-use loop 400s with "The
+--              reasoning_content in the thinking mode must be passed back
+--              to the API"). The OpenAI provider now collects this stream,
+--              stores it as a Lua {type="thinking", thinking=...} block in
+--              the canonical message history, and messages_to_openai
+--              re-emits it on the next request. The block is intentionally
+--              not rendered by ui.lua — it's purely roundtrip plumbing.
+--   * 0.6.1  Settings help: document mimo Token Plan vs pay-as-you-go split.
+--            The Token Plan (tp-xxx key + token-plan-cn.xiaomimimo.com) is a
+--            separate billing system from pay-as-you-go (sk-xxx key +
+--            api.xiaomimimo.com); the Web Search Plugin activation only
+--            applies to the latter. An earlier draft of 0.6.1 tried to
+--            auto-inject mimo's {type:"web_search"} tool whenever the base
+--            URL pointed at xiaomimimo.com — that hit a 400 on Token Plan
+--            ("webSearchEnabled is false") and was reverted. Server-side
+--            web search through mimo is currently only reachable via the
+--            pay-as-you-go endpoint with a sk- key, and we leave that to
+--            the user to opt into manually for now.
+--   * 0.6.0  Server-side web search via provider-native APIs. When connected
+--            to api.anthropic.com (or any *.anthropic.com host) the Anthropic
+--            provider auto-attaches the web_search_20250305 tool with
+--            max_uses=5. The OpenAI provider auto-enables web_search_options
+--            for *-search-preview models. Detection is by settings.base_url /
+--            model only — no UI toggle. Third-party Anthropic-compat proxies
+--            (e.g. mimo) are skipped so they don't get the server tool sent
+--            as a client tool ("unknown tool: web_search"). UI shows
+--            "🔍 搜索中…" inline while Anthropic is searching, and both
+--            providers list source URLs at the end of the assistant message.
+--   * 0.5.2  Rename provider type 'claude' → 'anthropic' so both providers
+--            use vendor names (anthropic / openai). Old configs saying
+--            'claude' continue to work as a silent alias, so this is a
+--            no-op for users on 0.5.1; the rename fixes a startup crash
+--            when an extstate has 'anthropic' written by another build of
+--            MCAssistant that shares the same EXT section.
+--   * 0.5.1  Move the ReaPack install path to MC Scripts Release/MCAssistant.
+--   * 0.5.0  In-panel text input replaces the modal Send dialog. User
+--            messages now appear instantly and AI streams in token-by-
+--            token (was: both batched after the modal closed). Multi-
+--            line input via Shift+Enter; Ctrl+V paste via SWS extension.
+--            Visual refresh closer to Claude desktop (warm caret accent,
+--            denser typography, refined spacing). Settings now opens via
+--            the ⚙ button in the status bar (S key is freed for typing).
+--   * 0.4.2  Add project_render tool (bounds + format presets, exposes
+--            REAPER's Render Project via GetSetProjectInfo_String +
+--            Main_OnCommand 42230). bounds=selected_items renders each
+--            selected item ISOLATED to its own file by default
+--            (other items muted, time range = item bounds, filename =
+--            sanitized take name); pass merge=true for a single
+--            mixdown. items_get_info now also reports source_type /
+--            source_samplerate / source_channels.
+--   * 0.4.1  Add loudness analysis + normalisation: items_get_loudness
+--            (read-only LUFS-I / RMS / peak / true peak) and
+--            items_normalize_loudness (target_db + mode, single Undo).
+--   * 0.4.0  Claude.ai-inspired UI: deep dark theme, three-dot waiting animation,
+--    neutral user bubbles, condensed status bar.
+--   * 0.3.1  Hotfixes (ID collision, undo leak, curl redaction) + UI refresh.
+--   * 0.3.0  Async HTTP + SSE streaming. Expanded to 22 tools. Tick-based
+--      chat state machine so UI stays responsive during network I/O.
+--   * 0.2.0  OpenAI-compatible provider. Settings dialog for type/base_url/
+--            model/api_key (OpenRouter, Groq, Ollama, etc.).
+--   * 0.1.0  Initial demo: Claude provider, 4 tools, gfx chat UI.
+--------------------------------------------------------------------------------
+-- module loading
+--------------------------------------------------------------------------------
+local SCRIPT_DIR = debug.getinfo(1, "S").source:match("@(.+)[/\\][^/\\]+$") or "."
+package.path = SCRIPT_DIR .. "/?.lua;" .. (package.path or "")
+
+local function safe_require(name)
+    local ok, mod = pcall(require, name)
+    if not ok then
+     reaper.MB("MCAssistant: failed to load module '" .. name .. "'\n\n" ..
+               tostring(mod), "MCAssistant", 0)
+        return nil
+    end
+    return mod
+end
+
+local json     = safe_require("json")
+local http     = safe_require("http")
+local provider = safe_require("provider")
+local tools    = safe_require("tools")
+local chat_mod = safe_require("chat")
+local ui_mod   = safe_require("ui")
+local base64   = safe_require("base64")
+local image    = safe_require("image")
+local update   = safe_require("update")   -- optional: update check is non-critical
+
+if not (json and http and provider and tools and chat_mod and ui_mod and base64 and image) then return end
+
+--------------------------------------------------------------------------------
+-- guards
+--------------------------------------------------------------------------------
+if not reaper.JS_Window_Find then
+  reaper.MB("MCAssistant requires the js_ReaScriptAPI extension.\n\n" ..
+           "Install via ReaPack.", "MCAssistant", 0)
+ return
+end
+
+if not reaper.ImGui_CreateContext then
+    reaper.MB("MCAssistant requires the ReaImGui extension.\n\n" ..
+              "Install via ReaPack (Extensions → ReaPack → Browse packages → ReaImGui).",
+              "MCAssistant", 0)
+    return
+end
+
+local curl_ok, curl_err = http.check_curl()
+if not curl_ok then
+    reaper.MB("MCAssistant: " .. tostring(curl_err) .. "\n\n" ..
+  "This build expects curl.exe at C:\\Windows\\System32\\curl.exe " ..
+        "(Windows 10/11 default).", "MCAssistant", 0)
+    return
+end
+
+if reaper.set_action_options then reaper.set_action_options(1) end
+
+--------------------------------------------------------------------------------
+-- config
+--------------------------------------------------------------------------------
+local EXT = "MCAssistant"
+
+-- Running version, parsed from this script's own "-- @version" header so the
+-- header stays the single source of truth (used by the startup update check).
+local SELF_PATH = debug.getinfo(1, "S").source:match("@(.+)$") or ""
+local function read_own_version(path)
+    local f = io.open(path, "r")
+    if not f then return nil end
+    local v
+    for _ = 1, 12 do
+        local line = f:read("*l")
+        if not line then break end
+        v = line:match("@version%s+([%d%.]+)")
+        if v then break end
+    end
+    f:close()
+    return v
+end
+local VERSION = read_own_version(SELF_PATH) or "0.9.1"
+
+local SETTINGS_HELP = [[
+MCAssistant — API 配置
+
+Provider type:
+  anthropic — Anthropic Messages API
+  openai    — OpenAI Chat Completions (覆盖 OpenRouter / Groq / DeepSeek / 本地 Ollama 等所有兼容端点)
+
+常见预设 (type / base URL / model / api key):
+  Anthropic:  anthropic / (留空) / claude-sonnet-4-6 / sk-ant-...
+  OpenAI: openai / (留空) / gpt-4o / sk-...
+  OpenRouter: openai / https://openrouter.ai/api/v1 / anthropic/claude-sonnet-4-5 / sk-or-...
+  Groq:   openai / https://api.groq.com/openai/v1 / llama-3.3-70b-versatile / gsk_...
+  DeepSeek:   openai / https://api.deepseek.com / deepseek-chat / sk-...
+  小米 mimo Token Plan: openai / https://token-plan-cn.xiaomimimo.com/v1 / mimo-v2.5 / tp-...
+       （Token Plan 套餐不含联网搜索；要联网需切到 pay-as-you-go: sk-... + api.xiaomimimo.com/v1）
+  Ollama 本地: openai / http://localhost:11434/v1 / llama3.1 / 任意非空字符串
+
+Search API key (可选): 联网搜索通过本地工具 web_search / web_fetch 实现，
+跟模型厂商无关。后端用 Tavily (https://tavily.com)，免费 1000 次/月。
+注册后拿 tvly-... 形式的 key，通过状态栏的「搜索」开关配置。
+留空则模型没法搜，但其他功能照常。
+HTML→纯文本走 Jina Reader (r.jina.ai)，免登录，无需额外 key。
+
+API key 以明文存于 reaper-extstate.ini —— 建议用低额度专用 key。
+]]
+
+local function load_settings()
+  return {
+        type               = reaper.GetExtState(EXT, "provider_type"),
+        base_url           = reaper.GetExtState(EXT, "base_url"),
+        model              = reaper.GetExtState(EXT, "model"),
+        api_key            = reaper.GetExtState(EXT, "api_key"),
+        search_api_key     = reaper.GetExtState(EXT, "search_api_key"),
+        web_search_enabled = reaper.GetExtState(EXT, "web_search_enabled"),
+    }
+end
+
+local function save_settings(s)
+    reaper.SetExtState(EXT, "provider_type",      s.type               or "", true)
+    reaper.SetExtState(EXT, "base_url",           s.base_url           or "", true)
+    reaper.SetExtState(EXT, "model",              s.model              or "", true)
+    reaper.SetExtState(EXT, "api_key",            s.api_key            or "", true)
+    reaper.SetExtState(EXT, "search_api_key",     s.search_api_key     or "", true)
+    reaper.SetExtState(EXT, "web_search_enabled", s.web_search_enabled or "", true)
+end
+
+local function trim(s) return (s or ""):gsub("^%s+", ""):gsub("%s+$", "") end
+
+-- Resolve whether web search is enabled. Migration rule: if the flag is
+-- empty (pre-0.6.3 user), treat a non-empty search_api_key as "implicitly
+-- enabled" so existing users don't have to reconfigure after upgrade.
+local function is_web_search_enabled_for(settings)
+    if not settings then return false end
+    local flag = settings.web_search_enabled or ""
+    if flag == "" then return (settings.search_api_key or "") ~= "" end
+    return flag == "1"
+end
+
+-- Follow-up dialog shown when the user just flipped web search ON but had no
+-- Tavily key on file. A single-field prompt so it's not jarring.
+local function prompt_search_key(current_key)
+    local ok, csv = reaper.GetUserInputs(
+        "MCAssistant — Tavily Search Key",
+        1,
+        "Search API key (tvly-...),extrawidth=520",
+        current_key or "")
+    if not ok then return nil end
+    return trim(csv)
+end
+
+local function prompt_settings(current, show_help)
+    if show_help then reaper.MB(SETTINGS_HELP, "MCAssistant — Settings", 0) end
+
+    local fields = "Type (anthropic/openai),Base URL (blank=default),Model,API key,extrawidth=520,separator=|"
+    local default = table.concat({
+        (current and current.type)     or "anthropic",
+        (current and current.base_url) or "",
+        (current and current.model)    or "claude-sonnet-4-6",
+        (current and current.api_key)  or "",
+    }, "|")
+    local ok, csv = reaper.GetUserInputs("MCAssistant — API Settings", 4, fields, default)
+    if not ok then return nil end
+
+    local parts = {}
+    for p in (csv .. "|"):gmatch("([^|]*)|") do parts[#parts + 1] = p end
+    local s = {
+        type     = trim(parts[1] or ""):lower(),
+        base_url = trim(parts[2] or ""),
+        model    = trim(parts[3] or ""),
+        api_key  = trim(parts[4] or ""),
+    }
+
+    if s.type ~= "anthropic" and s.type ~= "claude" and s.type ~= "openai" then
+        reaper.MB("Provider type 必须是 'anthropic' 或 'openai'。", "MCAssistant", 0)
+        return nil
+    end
+    if s.api_key == "" then
+        reaper.MB("API key 不能为空。", "MCAssistant", 0)
+        return nil
+    end
+
+    return s
+end
+
+local settings = load_settings()
+if (settings.api_key or "") == "" then
+    settings = prompt_settings(settings, true)
+    if not settings then return end
+    save_settings(settings)
+end
+
+--------------------------------------------------------------------------------
+-- wire up
+--------------------------------------------------------------------------------
+local prov = provider.create(settings)
+local chat = chat_mod.new(prov, tools)
+local ui  -- forward declaration for callbacks
+
+-- Open the in-app settings popup, pre-populated with the current values.
+local function on_settings()
+    if not ui then return end
+    ui_mod.open_settings_overlay(ui, settings)
+end
+
+-- Save callback fired by the settings popup. Returns (ok, err_message).
+-- ok=true → popup closes; err_message=string → MB shown, popup stays open.
+local function on_save_settings(s)
+    if s.type ~= "anthropic" and s.type ~= "openai" then
+        return false, "Provider type 必须是 'anthropic' 或 'openai'。"
+    end
+    if s.api_key == "" then
+        return false, "API key 不能为空。"
+    end
+    -- Preserve web_search_enabled flag (managed via the toggle button, not the
+    -- text fields here).
+    s.web_search_enabled = settings.web_search_enabled
+    settings = s
+    save_settings(settings)
+    chat.provider = provider.create(settings)
+    return true
+end
+
+local function on_toggle_search(_is_right)
+    local currently_on = is_web_search_enabled_for(settings)
+    local new_on = not currently_on
+    settings.web_search_enabled = new_on and "1" or "0"
+    save_settings(settings)
+
+    if ui then ui_mod.set_web_search_state(ui, new_on) end
+end
+
+-- Update-dialog callback. "现在更新" opens the ReaPack browser pre-filtered
+-- to MCAssistant (guarded — ReaPack API may be absent). "以后再说" only closes
+-- the popup for the current session — by design, no ExtState write — so the
+-- next launch will see the cached latest version and pop up again. The popup
+-- stops coming back once VERSION catches up to last_known_latest_version
+-- (i.e. the user actually updated).
+local function on_update_confirm()
+    if reaper.ReaPack_BrowsePackages then
+        reaper.ReaPack_BrowsePackages("MCAssistant")
+    else
+        reaper.MB("请在 ReaPack > Synchronize Packages 中更新 MCAssistant。",
+                  "MCAssistant", 0)
+    end
+end
+
+--------------------------------------------------------------------------------
+-- wire up UI
+--------------------------------------------------------------------------------
+-- Window geometry is persisted inside ui.frame() each tick (ReaImGui exposes
+-- GetWindowPos/GetWindowSize directly). No gfx, no atexit save, no hwnd —
+-- ReaImGui's InputTextMultiline handles CJK / IME natively, so the old
+-- on_chinese_input modal path is gone.
+ui = ui_mod.new(chat, {
+    on_settings       = on_settings,
+    on_save_settings  = on_save_settings,
+    on_toggle_search  = on_toggle_search,
+    on_update_confirm = on_update_confirm,
+})
+
+ui_mod.set_web_search_state(ui, is_web_search_enabled_for(settings))
+
+-- ----------------------------------------------------------------------------
+-- Startup update check, split across two ExtState keys so we can throttle the
+-- (expensive) curl spawn without losing the (cheap, persistent) "an update
+-- exists" reminder.
+--
+--   last_update_check_at        — unix ts of the last spawned curl. Throttle
+--                                 to once per 24h so reloads don't pay the
+--                                 cmd.exe + curl.exe + Defender first-scan
+--                                 cost (~hundreds of ms on Windows, lands
+--                                 right between ImGui init and first frame).
+--   last_known_latest_version   — last version string the check returned.
+--                                 If it's > VERSION we open the popup on
+--                                 EVERY launch (no curl) until the user
+--                                 actually updates and VERSION catches up.
+--
+-- "以后再说" no longer remembers anything — it just closes the popup. Next
+-- launch the cache will still say there's an update and it'll open again.
+-- ----------------------------------------------------------------------------
+local UPDATE_THROTTLE = 24 * 3600   -- seconds
+
+-- Persistent reminder (no network): if a prior check found a newer version,
+-- queue the popup immediately. Runs every launch — that's the point.
+local cached_latest = reaper.GetExtState(EXT, "last_known_latest_version")
+if cached_latest ~= "" and update
+   and update.compare(VERSION, cached_latest) < 0 then
+    ui._update_current_version = VERSION
+    ui._update_new_version     = cached_latest
+    ui._open_update_request    = true
+end
+
+-- Throttled fresh check (the expensive part). Stamp the timestamp the moment
+-- we kick off, not on poll success — that way a closed REAPER mid-check or a
+-- network-down user still gets 24h of "no curl spawn" instead of paying the
+-- cost on every reload.
+local update_handle = nil
+if update then
+    local now  = os.time()
+    local last = tonumber(reaper.GetExtState(EXT, "last_update_check_at")) or 0
+    if (now - last) >= UPDATE_THROTTLE then
+        update_handle = update.start()
+        if update_handle then
+            reaper.SetExtState(EXT, "last_update_check_at", tostring(now), true)
+        end
+    end
+end
+
+--------------------------------------------------------------------------------
+-- main loop
+--------------------------------------------------------------------------------
+local function main()
+    chat:tick()   -- advance async state machine
+
+    -- Poll the startup update check (one-shot). On success, cache the latest
+    -- version so the popup keeps coming back on future launches without any
+    -- network until the user actually updates.
+    if update_handle then
+        local r = update.poll(update_handle)
+        if r.done then
+            if r.latest then
+                reaper.SetExtState(EXT, "last_known_latest_version", r.latest, true)
+                if update.compare(VERSION, r.latest) < 0 then
+                    ui._update_current_version = VERSION
+                    ui._update_new_version     = r.latest
+                    ui._open_update_request    = true
+                end
+            end
+            update_handle = nil   -- stop polling regardless of outcome
+        end
+    end
+
+    if not ui_mod.frame(ui) then return end   -- user closed window
+    reaper.defer(main)
+end
+
+main()

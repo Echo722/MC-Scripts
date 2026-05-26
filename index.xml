@@ -123,6 +123,19 @@ REAPER/Scripts/MC Scripts Release/&lt;script-folder&gt;/
 				<source file="update.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.8.6/update.lua</source>
 				<changelog><![CDATA[Fix: the noticeable load delay introduced in 0.8.5 is gone, and the update prompt now persists across launches. The startup update check is throttled to once per 24h via ExtState (last_update_check_at) — most reloads no longer spawn curl, so the window appears instantly. The update notification now persists: the last-known latest version is cached (last_known_latest_version), so if you click "以后再说" the popup will come back on the next launch and keep nagging until you actually update. Previously "以后再说" silenced the prompt until an even newer version shipped. MCAssistant.lua only.]]></changelog>
 			</version>
+			<version name="0.9.1" author="MC Scripts" time="2026-05-26T12:00:00.000Z">
+				<source file="MCAssistant.lua" main="true">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.9.1/MCAssistant.lua</source>
+				<source file="base64.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.9.1/base64.lua</source>
+				<source file="chat.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.9.1/chat.lua</source>
+				<source file="http.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.9.1/http.lua</source>
+				<source file="image.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.9.1/image.lua</source>
+				<source file="json.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.9.1/json.lua</source>
+				<source file="provider.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.9.1/provider.lua</source>
+				<source file="tools.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.9.1/tools.lua</source>
+				<source file="ui.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.9.1/ui.lua</source>
+				<source file="update.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/MCAssistant/0.9.1/update.lua</source>
+				<changelog><![CDATA[Controlled autonomous REAPER Lua execution, with safety hardening. New reaper_lua_execute tool: when the dedicated tools can't express a task, the assistant runs a short generated Lua snippet against REAPER's API. The environment is heavily restricted — no io/os/package/require/debug/coroutine, no pcall/load, no while/repeat/goto, no external-process APIs, no background defer loops, no JS_*/BR_Win32_*/SNM_* APIs, no action system (Main_OnCommand/MIDIEditor_OnCommand/NamedCommandLookup), no ReaPack_*, no script registration, no directory creation. Standard libraries are injected as copies so generated code can't poison globals. Each run is wrapped in one Undo block, captures print output (capped), caps reaper API calls, and the preflight rejects large numeric literals that would drive runaway loops. Every execution must be confirmed by the user before it runs (the generated code is shown in a native dialog; disable via ExtState MCAssistant/lua_exec_confirm=0). Security blocks are answered locally to avoid provider hangs. Note: a CPU loop with a computed bound can still freeze REAPER if approved — review the confirmation before running.]]></changelog>
+			</version>
 		</reapack>
 	</category>
 	<category name="MediaEye">
