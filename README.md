@@ -16,7 +16,6 @@ REAPER/Scripts/MC Scripts Release/<script-folder>/
 
 ## Packages
 
-- MCAssistant: in-REAPER AI chat assistant with streaming and batch-operation tools.
 - MediaEye: Media Explorer album art viewer for embedded and sidecar cover images.
 
 ## Release Convention
@@ -26,4 +25,4 @@ Packages in this repository use:
 - Author: `MC Scripts`
 - Repository name: `MC Scripts Release`
 - Category: `<script-folder>`
-- Source file paths: direct package files such as `MediaEye.lua` or `MCAssistant.lua`
+- Source file paths: direct package files such as `MediaEye.lua`
