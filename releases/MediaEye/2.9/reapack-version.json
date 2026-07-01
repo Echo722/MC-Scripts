@@ -1,0 +1,13 @@
+{
+	"type": "script",
+	"category": "MediaEye",
+	"files": {
+		"MediaEye.lua": {
+			"main": true
+		}
+	},
+	"version": "2.9",
+	"package": "MediaEye",
+	"time": "2026-07-01T03:48:56.862Z",
+	"changeLog": "Pin On Top now stays topmost only while REAPER is the foreground app, so it no longer covers other programs (e.g. a browser) when you switch away, and it re-pins automatically when REAPER regains focus.\n----\nPin On Top(置顶)改为仅在 REAPER 处于前台时生效,切到浏览器等其它程序时不再遮挡,切回 REAPER 时自动重新置顶。"
+}

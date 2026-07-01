@@ -15,6 +15,12 @@ REAPER/Scripts/MC Scripts Release/&lt;script-folder&gt;/
 				<source file="MediaEye.lua" main="true">https://github.com/Echo722/MC-Scripts/raw/main/releases/MediaEye/2.8/MediaEye.lua</source>
 				<changelog><![CDATA[Move the ReaPack install path to MC Scripts Release/MediaEye so MC Scripts releases are grouped together.]]></changelog>
 			</version>
+			<version name="2.9" author="MC Scripts" time="2026-07-01T03:48:56.862Z">
+				<source file="MediaEye.lua" main="true">https://github.com/Echo722/MC-Scripts/raw/main/releases/MediaEye/2.9/MediaEye.lua</source>
+				<changelog><![CDATA[Pin On Top now stays topmost only while REAPER is the foreground app, so it no longer covers other programs (e.g. a browser) when you switch away, and it re-pins automatically when REAPER regains focus.
+----
+Pin On Top(置顶)改为仅在 REAPER 处于前台时生效,切到浏览器等其它程序时不再遮挡,切回 REAPER 时自动重新置顶。]]></changelog>
+			</version>
 		</reapack>
 	</category>
 </index>
