@@ -1,0 +1,13 @@
+{
+	"type": "script",
+	"category": "MediaEye",
+	"files": {
+		"MediaEye.lua": {
+			"main": true
+		}
+	},
+	"version": "3.1",
+	"package": "MediaEye",
+	"time": "2026-07-02T06:27:32.000Z",
+	"changeLog": "Cover priority: an image explicitly named as cover art (Artwork/Cover/Folder/Front/...) found on the folder chain now wins over the embedded picture. Fixes packs (e.g. SwishSwoosh) that embed a label logo into every file while the real pack cover sits in the root as Artwork.png. Unnamed nearby images still rank below the embedded picture.\n----\n封面优先级调整:文件夹链上找到明确以 Artwork/Cover/Folder/Front 等命名的封面图时,优先于音频内嵌图显示(修复 SwishSwoosh 等每个文件都内嵌厂牌 logo 而真封面在根目录 Artwork.png 的包);未明确命名的普通图片仍低于内嵌图。"
+}
