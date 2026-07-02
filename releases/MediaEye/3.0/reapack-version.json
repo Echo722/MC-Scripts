@@ -1,0 +1,13 @@
+{
+	"type": "script",
+	"category": "MediaEye",
+	"files": {
+		"MediaEye.lua": {
+			"main": true
+		}
+	},
+	"version": "3.0",
+	"package": "MediaEye",
+	"time": "2026-07-02T02:50:59.000Z",
+	"changeLog": "Always-on smart pinning: the window stays on top only inside REAPER and hides itself automatically while another application is in the foreground, reappearing pinned when REAPER returns. The Pin On Top toggle button has been removed.\n----\n置顶改为始终开启的智能行为:仅在 REAPER 内保持最上层,切到其它程序时窗口自动隐藏,切回 REAPER 自动恢复置顶;移除 Pin On Top 开关按钮。"
+}

@@ -21,6 +21,12 @@ REAPER/Scripts/MC Scripts Release/&lt;script-folder&gt;/
 ----
 Pin On Top(置顶)改为仅在 REAPER 处于前台时生效,切到浏览器等其它程序时不再遮挡,切回 REAPER 时自动重新置顶。]]></changelog>
 			</version>
+			<version name="3.0" author="MC Scripts" time="2026-07-02T02:50:59.000Z">
+				<source file="MediaEye.lua" main="true">https://github.com/Echo722/MC-Scripts/raw/main/releases/MediaEye/3.0/MediaEye.lua</source>
+				<changelog><![CDATA[Always-on smart pinning: the window stays on top only inside REAPER and hides itself automatically while another application is in the foreground, reappearing pinned when REAPER returns. The Pin On Top toggle button has been removed.
+----
+置顶改为始终开启的智能行为:仅在 REAPER 内保持最上层,切到其它程序时窗口自动隐藏,切回 REAPER 自动恢复置顶;移除 Pin On Top 开关按钮。]]></changelog>
+			</version>
 		</reapack>
 	</category>
 </index>
