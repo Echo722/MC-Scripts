@@ -1,0 +1,13 @@
+{
+	"type": "script",
+	"category": "MediaEye",
+	"files": {
+		"MediaEye.lua": {
+			"main": true
+		}
+	},
+	"version": "3.2",
+	"package": "MediaEye",
+	"time": "2026-07-02T07:38:09.000Z",
+	"changeLog": "The window now stays above the Media Explorer only, instead of above every REAPER window: clicking an FX (or any other) window brings it over the cover art as usual, so large plugin UIs are no longer obstructed. The above-ME ordering is maintained natively by Windows (owner attachment), so clicking around the Media Explorer causes no flicker. Hiding when another application is in the foreground is unchanged.\n----\n窗口置顶范围收窄:只保持在 Media Explorer 之上,不再压住所有 REAPER 窗口——点击 FX 等其它窗口可正常盖住封面图,大插件界面不再被挡;在 ME 上层的排序由 Windows 原生维持(owner 挂接),点击 ME 无闪烁;切到其它程序时自动隐藏的行为保持不变。"
+}
