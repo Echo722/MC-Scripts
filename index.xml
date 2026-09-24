@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <index version="1" name="MC Scripts Release" generated-by="https://www.npmjs.com/package/reapack">
 	<metadata>
-		<description>{\rtf1\ansi\fs24{\fs48\b MC Scripts\b}\line\line Unified ReaPack repository for REAPER scripts developed by MC Scripts.\line\line Import this ReaPack repository:\line\line \i\ul text
+		<description>{\rtf1\ansi\fs24{\fs48\b MC Scripts\b}\line\line Unified ReaPack repository for REAPER scripts and effects developed by MC Scripts.\line\line Import this ReaPack repository:\line\line \i\ul text
 https://github.com/Echo722/MC-Scripts/raw/main/index.xml
 \ul0\i0 \line\line Scripts install under:\line\line \i\ul text
 REAPER/Scripts/MC Scripts Release/&lt;script-folder&gt;/
-\ul0\i0 \line\line {\fs24\b Packages\b}\line\line {\par \bullet\tab MediaEye: Media Explorer album art viewer for embedded and sidecar cover images.\line }\line {\fs24\b Release Convention\b}\line\line Packages in this repository use:\line\line {\par \bullet\tab Author: \i\ul MC Scripts\ul0\i0 \line \bullet\tab Repository name: \i\ul MC Scripts Release\ul0\i0 \line \bullet\tab Category: \i\ul &lt;script-folder&gt;\ul0\i0 \line \bullet\tab Source file paths: direct package files such as \i\ul MediaEye.lua\ul0\i0 \line }\line }</description>
+\ul0\i0 \line\line Effects (JSFX) install under:\line\line \i\ul text
+REAPER/Effects/MC Scripts Release/&lt;effect-folder&gt;/
+\ul0\i0 \line\line {\fs24\b Packages\b}\line\line {\par \bullet\tab MediaEye: Media Explorer album art viewer for embedded and sidecar cover images.\line \bullet\tab TonalReducer (effect, beta): MC Tonal Reducer turns down sustained tones, notes, chords and glides in sound effects while keeping impacts and noise texture. It is a pre-release, so install it from the package browser with right-click &gt; Versions...\line }\line {\fs24\b Release Convention\b}\line\line Packages in this repository use:\line\line {\par \bullet\tab Author: \i\ul MC Scripts\ul0\i0 \line \bullet\tab Repository name: \i\ul MC Scripts Release\ul0\i0 \line \bullet\tab Category: \i\ul &lt;script-folder&gt;\ul0\i0  (or \i\ul &lt;effect-folder&gt;\ul0\i0 )\line \bullet\tab Source file paths: direct package files such as \i\ul MediaEye.lua\ul0\i0  or \i\ul MC_TonalReducer.jsfx\ul0\i0 \line }\line }</description>
 	</metadata>
 	<category name="MediaEye">
 		<reapack name="MediaEye" type="script">
@@ -38,6 +40,18 @@ Pin On Top(置顶)改为仅在 REAPER 处于前台时生效,切到浏览器等�
 				<changelog><![CDATA[The window now stays above the Media Explorer only, instead of above every REAPER window: clicking an FX (or any other) window brings it over the cover art as usual, so large plugin UIs are no longer obstructed. The above-ME ordering is maintained natively by Windows (owner attachment), so clicking around the Media Explorer causes no flicker. Hiding when another application is in the foreground is unchanged.
 ----
 窗口置顶范围收窄:只保持在 Media Explorer 之上,不再压住所有 REAPER 窗口——点击 FX 等其它窗口可正常盖住封面图,大插件界面不再被挡;在 ME 上层的排序由 Windows 原生维持(owner 挂接),点击 ME 无闪烁;切到其它程序时自动隐藏的行为保持不变。]]></changelog>
+			</version>
+		</reapack>
+	</category>
+	<category name="TonalReducer">
+		<reapack name="TonalReducer" type="effect" desc="MC Tonal Reducer">
+			<metadata>
+			</metadata>
+			<version name="0.1.0beta2" author="MC Scripts" time="2026-09-24T02:47:11.000Z">
+				<source file="MC_TonalReducer.jsfx">https://github.com/Echo722/MC-Scripts/raw/main/releases/TonalReducer/0.1.0beta2/MC_TonalReducer.jsfx</source>
+				<changelog><![CDATA[First public beta of MC Tonal Reducer, a JSFX for sound design that turns down tonal content (sustained tones, short notes, chords and glides) while keeping impacts and noise texture. Stereo-linked partial tracking; transient protection that also suppresses pre-echo before attacks and leaves already-sounding tones alone; Processed / Original / Removed monitoring with identical latency (64 ms at 48 kHz); a scalable UI with a live spectrum. Requires REAPER 7.0+. This is a pre-release: in the package browser, right-click TonalReducer > Versions... to install it. Since the 0.1.0beta1 zip, Reduction is a percentage (0-100%, default 50%); projects saved with beta1 need it set again (6 dB = 50%, 12 dB = 75%, 24 dB = 94%).
+----
+MC Tonal Reducer 首个公开测试版：用于音效设计的音调抑制 JSFX，削弱持续音、短音符、和弦与滑音，同时保留冲击和噪声质感。左右声道联动的分音跟踪；瞬态保护会抑制起音前的预回声，且不会把已经在持续的音调放回；处理后／原音／移除部分三种试听延迟一致（48 kHz 下 64 ms）；界面可缩放，带实时频谱。需要 REAPER 7.0 以上。这是预发布版本：请在包浏览器里右键 TonalReducer，选 Versions... 安装。相对 0.1.0beta1 压缩包：削弱力度改为百分比（0–100%，默认 50%），用 beta1 保存的工程需要重新设置（6 dB≈50%，12 dB≈75%，24 dB≈94%）。]]></changelog>
 			</version>
 		</reapack>
 	</category>

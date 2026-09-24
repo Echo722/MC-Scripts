@@ -1,0 +1,668 @@
+desc:MC Tonal Reducer
+// @description MC Tonal Reducer
+// @author MC Scripts
+// @version 0.1.0beta2
+// @about
+//   Conservative tonal reduction for sound effects. Stereo-linked partial tracking,
+//   transient protection and latency-aligned Original / Processed / Removed monitoring.
+//   手动添加到 Take FX 或轨道 FX。优先保留质感，允许音调残留。
+//   No external runtime or extension required. Requires REAPER 7.0+.
+// @changelog
+//   Reduction is now a percentage (0-100%, default 50%) instead of dB. Projects saved
+//   with 0.1.0beta1 need this parameter set again: 6 dB = 50%, 12 dB = 75%, 24 dB = 94%.
+//   Loop playback no longer drops audio at the loop point; latency is 25% lower.
+//   Transient protection also suppresses pre-echo and leaves sustained tones alone.
+//   Partials outside the band no longer use up the 128 tracks.
+//   Lower CPU; memory per instance is 0.5 MB at 44.1/48 kHz (was 8 MB). UI fixes.
+tags: spectral restoration sound-design
+options:maxmem=262144 prealloc=65536 gfx_hz=30
+
+slider1:50<0,100,0.1>削弱力度 / Reduction (%)
+slider2:50<0,100,1>识别灵敏度 / Sensitivity (%)
+slider3:80<0,100,1>瞬态保护 / Transient protection (%)
+slider4:120<20,20000,1:log>频段下限 / Low (Hz)
+slider5:16000<20,20000,1:log>频段上限 / High (Hz)
+slider6:0<0,2,1{处理后 / Processed,原音 / Original,移除部分 / Removed}>试听 / Monitor
+slider7:0<-18,12,0.1>输出增益 / Output (dB)
+
+in_pin:left input
+in_pin:right input
+out_pin:left output
+out_pin:right output
+
+@init
+// Let REAPER reinitialize for a new stream (also important in Batch Converter).
+ext_noinit = 0;
+ext_nodenorm = 1;
+// Ask for hi-DPI drawing once; REAPER raises it above 1 on retina/hi-DPI screens.
+!gfx_ext_retina ? gfx_ext_retina=1;
+max_tracks=128;
+log10_inv=1/log(10);
+
+function clamp(v,a,b) ( min(b,max(a,v)); );
+function db(v) ( 20*log(max(0.000000001,v))*log10_inv; );
+
+function reset_dsp() local(i,scale,f0,f1,k0,k1,top) (
+  // Preserve a similar time/frequency trade-off across sample rates.
+  scale = srate > 132300 ? 4 : srate > 66150 ? 2 : 1;
+  n=2048*scale; nl=n*2; hop=n/8; bins=n/2; lbins=nl/2;
+  // The last frame covering a source sample runs 1.5n-1 samples after it, so
+  // 1.5n is the smallest latency at which every output sample is complete.
+  latency=n+n/2; pdc_delay=latency; pdc_bot_ch=0; pdc_top_ch=2;
+  ext_tail_size=latency+n;
+  // Memory is sized for the current rate: about 64k slots at 44.1/48 kHz (one
+  // preallocated page), 251k at 192 kHz. The FFT buffers (8n <= 65,536) share
+  // the first page, so no FFT crosses a JSFX page boundary. spec_s/spec_l hold
+  // packed stereo (L+jR) spectra; spec_y is the young-partial copy. Rings of nl
+  // samples cover the longest look-back, the long analysis window.
+  spec_s=0; spec_y=2*n; spec_l=4*n;
+  ring_mask=nl-1;
+  in_l=8*n; in_r=in_l+nl; out_l=in_r+nl; out_r=out_l+nl;
+  out_yl=out_r+nl; out_yr=out_yl+nl; transients=out_yr+nl;
+  win_s=transients+nl; win_l=win_s+n;
+  mag_s=win_l+nl; sum_s=mag_s+bins+8; mag_l=sum_s+bins+8; sum_l=mag_l+lbins+8;
+  mask=sum_l+lbins+8; smooth_mask=mask+bins+8; mask_y=smooth_mask+bins+8; smooth_y=mask_y+bins+8;
+  prev_f=smooth_y+bins+8; prev_v=prev_f+max_tracks; prev_age=prev_v+max_tracks;
+  prev_used=prev_age+max_tracks; next_f=prev_used+max_tracks;
+  next_v=next_f+max_tracks; next_age=next_v+max_tracks;
+  // Spectrum display: the audio thread fills disp_*, @gfx smooths them into ui_*.
+  disp_bands=64;
+  disp_amp=next_age+max_tracks; disp_k0=disp_amp+bins+8; disp_k1=disp_k0+disp_bands;
+  disp_in=disp_k1+disp_bands; disp_out=disp_in+disp_bands;
+  ui_in=disp_out+disp_bands; ui_out=ui_in+disp_bands;
+  memset(0,0,ui_out+disp_bands);
+  // Log-spaced bands from 20 Hz to 20 kHz (or Nyquist). Every band owns at least
+  // one bin, so low bands narrower than a bin still show a value.
+  top=min(20000,srate*0.5); i=0;
+  loop(disp_bands,
+    f0=20*exp(i/disp_bands*log(top/20)); f1=20*exp((i+1)/disp_bands*log(top/20));
+    k0=ceil(f0*n/srate); k1=ceil(f1*n/srate)-1;
+    k1<k0 ? k0=k1=floor(sqrt(f0*f1)*n/srate+0.5);
+    disp_k0[i]=clamp(k0,1,bins-1); disp_k1[i]=clamp(k1,disp_k0[i],bins-1);
+    ui_in[i]=ui_out[i]=-120;
+    i+=1;
+  );
+  i=0;
+  loop(n, win_s[i]=0.5-0.5*cos(2*$pi*i/n); i+=1;);
+  i=0;
+  loop(nl, win_l[i]=0.5-0.5*cos(2*$pi*i/nl); i+=1;);
+  // Periodic Hann analysis and synthesis, eight overlaps: sum(window^2)=3.
+  synthesis_scale=8*hop/(3*n*n);
+  tick=0; until_frame=hop; frame_count=0; prev_count=0;
+  fast_env=slow_env=0;
+  fast_attack=exp(-1/(srate*0.001)); fast_release=exp(-1/(srate*0.012));
+  slow_attack=exp(-1/(srate*0.030)); slow_release=exp(-1/(srate*0.080));
+  // Transient guard looks ahead half a short window (see @sample).
+  lookahead=n/2; hold=hold_left=guard_sm=0;
+  hold_release=exp(-1/(srate*0.004)); guard_attack=1-exp(-1/(srate*0.002));
+  control_coeff=exp(-1/(srate*0.015));
+  meter_decay=exp(-1/(srate*0.25));
+  mask_release=exp(-hop/(srate*0.016));
+  // Reduction is the share of each detected partial that is subtracted.
+  amount_sm=clamp(slider1,0,100)/100;
+  protect_sm=clamp(slider3,0,100)/100;
+  gain_sm=exp(clamp(slider7,-18,12)*log(10)/20);
+  listen_dry=slider6==1; listen_removed=slider6==2;
+  meter_in=meter_out=meter_removed=0;
+  dsp_srate=srate;
+);
+
+function frame() local(i,j,p,q,center,start_s,start_l,re,im,total,
+  k,a,b,c,d,floor_s,floor_l,power,pl,ratio_s,ratio_l,score,ls,
+  frac,freq,best,best_dist,dist,pred,tolerance,age,vel,confidence,
+  radius,weight,lo,hi,edge,taper,target,attack,amp,read_idx,write_idx,
+  threshold,matched_quality,track_factor,peak_gate,blend,short_center,youth,amp_y,last) (
+  // The short window is centered within the long window. Only past samples
+  // are read. Every synthesized sample is scheduled at source_time+latency.
+  start_l=tick-nl+1; start_s=start_l+n/2;
+  // Stereo is packed as L+jR, so one complex FFT per window carries both channels.
+  i=0;
+  loop(n,
+    p=(start_s+i)&ring_mask; q=2*i;
+    spec_s[q]=in_l[p]*win_s[i]; spec_s[q+1]=in_r[p]*win_s[i];
+    i+=1;
+  );
+  i=0;
+  loop(nl,
+    p=(start_l+i)&ring_mask; q=2*i;
+    spec_l[q]=in_l[p]*win_l[i]; spec_l[q+1]=in_r[p]*win_l[i];
+    i+=1;
+  );
+  fft(spec_s,n); fft_permute(spec_s,n);
+  fft(spec_l,nl); fft_permute(spec_l,nl);
+  // With Z=FFT(L+jR): |L(k)|^2+|R(k)|^2 = (|Z(k)|^2+|Z(n-k)|^2)/2.
+  mag_s[0]=spec_s[0]^2+spec_s[1]^2; mask[0]=mask_y[0]=0;
+  sum_s[0]=0; sum_s[1]=log(max(0.000000000000000000000001,mag_s[0]));
+  i=1;
+  loop(bins,
+    q=2*i; p=2*(n-i);
+    mag_s[i]=0.5*(spec_s[q]^2+spec_s[q+1]^2+spec_s[p]^2+spec_s[p+1]^2);
+    sum_s[i+1]=sum_s[i]+log(max(0.000000000000000000000001,mag_s[i]));
+    mask[i]=mask_y[i]=0; i+=1;
+  );
+  mag_l[0]=spec_l[0]^2+spec_l[1]^2;
+  sum_l[0]=0; sum_l[1]=log(max(0.000000000000000000000001,mag_l[0]));
+  i=1;
+  loop(lbins,
+    q=2*i; p=2*(nl-i);
+    mag_l[i]=0.5*(spec_l[q]^2+spec_l[q+1]^2+spec_l[p]^2+spec_l[p+1]^2);
+    sum_l[i+1]=sum_l[i]+log(max(0.000000000000000000000001,mag_l[i])); i+=1;
+  );
+  memset(prev_used,0,max_tracks);
+  next_count=0;
+  threshold=14-8*clamp(slider2,0,100)/100;
+  lo=min(slider4,slider5); hi=min(max(slider4,slider5),srate*0.48);
+  peak_gate=n*n*0.0000000000000001;
+  // Search only where a partial's mask (radius <= 12.5 bins) can reach the band;
+  // peaks further out would just use up track slots and CPU.
+  k=max(2,floor(lo*n/srate)-13); last=min(bins-2,ceil(hi*n/srate)+13);
+  loop(max(0,last-k+1),
+    power=mag_s[k];
+    power>peak_gate && power>mag_s[k-1] && power>=mag_s[k+1] ? (
+      a=max(1,k-32); b=min(bins,k+33); c=max(a,k-3); d=min(b,k+4);
+      // Geometric background avoids treating adjacent chord partials as noise.
+      // Correct its white-noise bias before applying the prominence threshold.
+      floor_s=exp((sum_s[b]-sum_s[a]-sum_s[d]+sum_s[c])/max(1,b-a-d+c))/0.56146;
+      ratio_s=10*log(max(0.000000000001,power/floor_s))*log10_inv;
+      score=clamp((ratio_s-threshold)/12,0,1);
+      score>0 && next_count<max_tracks ? (
+        // Sub-bin peak estimate; bounded predicted-frequency association.
+        a=log(max(0.000000000000000000000001,mag_s[k-1])); b=log(max(0.000000000000000000000001,power)); c=log(max(0.000000000000000000000001,mag_s[k+1]));
+        frac=clamp(0.5*(a-c)/min(-0.000000000001,a-2*b+c),-0.5,0.5);
+        freq=k+frac;
+        best=-1; best_dist=1; j=0;
+        tolerance=max(1.6,0.035*freq);
+        loop(prev_count,
+          !prev_used[j] ? (
+            pred=prev_f[j]+prev_v[j];
+            dist=abs(freq-pred)/tolerance;
+            dist<best_dist ? (best_dist=dist; best=j;);
+          );
+          j+=1;
+        );
+        best>=0 ? (
+          prev_used[best]=1;
+          age=min(16,prev_age[best]+1);
+          vel=0.55*(freq-prev_f[best])+0.45*prev_v[best];
+          matched_quality=1-best_dist;
+        ) : (age=1; vel=0; matched_quality=0;);
+        next_f[next_count]=freq; next_v[next_count]=vel; next_age[next_count]=age;
+        next_count+=1;
+        p=clamp(floor(freq*2+0.5),2,lbins-2);
+        pl=max(mag_l[p],max(mag_l[p-1],mag_l[p+1]));
+        a=max(1,p-48); b=min(lbins,p+49); c=max(a,p-5); d=min(b,p+6);
+        floor_l=exp((sum_l[b]-sum_l[a]-sum_l[d]+sum_l[c])/max(1,b-a-d+c))/0.56146;
+        ratio_l=10*log(max(0.000000000001,pl/floor_l))*log10_inv;
+        ls=clamp((ratio_l-threshold)/12,0,1);
+        // A coherent moving ridge can qualify even if the long FFT smears it.
+        track_factor=clamp((age-2)/4,0,1)*matched_quality;
+        confidence=score*max(ls,0.85*track_factor)*min(1,age/3);
+        // Transient protection applies only to partials born within about one
+        // short window (8 frames), fading out by 12: a note that starts at a hit
+        // keeps its attack, but a tone that was already sounding is not restored.
+        youth=clamp((12-age)/4,0,1);
+        radius=2.5+min(10,abs(vel)*4);
+        i=max(1,floor(freq-radius)); j=min(bins-1,ceil(freq+radius));
+        loop(j-i+1,
+          weight=confidence*(0.5+0.5*cos($pi*min(1,abs(i-freq)/radius)));
+          mask[i]=max(mask[i],weight);
+          mask_y[i]=max(mask_y[i],weight*youth); i+=1;
+        );
+      );
+    );
+    k+=1;
+  );
+  memcpy(prev_f,next_f,next_count); memcpy(prev_v,next_v,next_count);
+  memcpy(prev_age,next_age,next_count); prev_count=next_count;
+  // Band edges fade over 1/6 octave. DC and Nyquist are never removed.
+  spec_s[0]=spec_s[1]=spec_s[n]=spec_s[n+1]=0;
+  spec_y[0]=spec_y[1]=spec_y[n]=spec_y[n+1]=0;
+  k=1;
+  loop(bins-1,
+    freq=k*srate/n;
+    taper=clamp(log(max(0.000000000001,freq/lo))*6/log(2),0,1)
+      *clamp(log(max(0.000000000001,hi/freq))*6/log(2),0,1);
+    // Fast attack, short release. Apply the band AFTER smoothing so automation
+    // cannot leave stale attenuation outside the selected frequency range.
+    target=mask[k];
+    blend=target>smooth_mask[k] ? 0.25 : mask_release;
+    smooth_mask[k]=target+(smooth_mask[k]-target)*blend;
+    target=mask_y[k];
+    blend=target>smooth_y[k] ? 0.25 : mask_release;
+    smooth_y[k]=target+(smooth_y[k]-target)*blend;
+    amp=smooth_mask[k]*taper; disp_amp[k]=amp;
+    amp_y=min(smooth_y[k],smooth_mask[k])*taper;
+    // A real mask applied to k and n-k alike keeps L (real) and R (imag) separable.
+    q=2*k; p=2*(n-k);
+    spec_y[q]=spec_s[q]*amp_y; spec_y[q+1]=spec_s[q+1]*amp_y;
+    spec_y[p]=spec_s[p]*amp_y; spec_y[p+1]=spec_s[p+1]*amp_y;
+    spec_s[q]*=amp; spec_s[q+1]*=amp; spec_s[p]*=amp; spec_s[p+1]*=amp;
+    k+=1;
+  );
+  fft_ipermute(spec_s,n); ifft(spec_s,n);
+  fft_ipermute(spec_y,n); ifft(spec_y,n);
+  // out_* is the whole removal; out_y* is its young-partial share (a subset).
+  i=0;
+  loop(n,
+    p=(start_s+i+latency)&ring_mask; q=2*i;
+    weight=win_s[i]*synthesis_scale;
+    out_l[p]+=spec_s[q]*weight; out_r[p]+=spec_s[q+1]*weight;
+    out_yl[p]+=spec_y[q]*weight; out_yr[p]+=spec_y[q+1]*weight;
+    i+=1;
+  );
+  // Display only: per-band peak power before and after the target reduction
+  // (transient protection's brief give-back is not shown). Nothing here feeds audio.
+  b=0;
+  loop(disp_bands,
+    k=disp_k0[b]; power=target=0;
+    loop(disp_k1[b]-disp_k0[b]+1,
+      power=max(power,mag_s[k]);
+      target=max(target,mag_s[k]*sqr(1-amount_target*disp_amp[k]));
+      k+=1;
+    );
+    disp_in[b]=power; disp_out[b]=target;
+    b+=1;
+  );
+  frame_count+=1;
+);
+
+reset_dsp();
+slider_show(127,show_native ? 1 : 0);
+
+@serialize
+file_var(0,show_native);
+// On load this runs after @init, so apply the restored panel state here.
+file_avail(0)>=0 ? slider_show(127,show_native ? 1 : 0);
+
+@slider
+// Targets are also refreshed per block for host automation.
+slider4=clamp(slider4,20,20000); slider5=clamp(slider5,20,20000);
+pdc_delay=latency; pdc_bot_ch=0; pdc_top_ch=2;
+
+@block
+// Transport start already runs @init. Do not reset on position jumps: at a loop
+// wrap the delay line still holds `latency` samples that are due to be heard.
+srate!=dsp_srate ? reset_dsp();
+amount_target=clamp(slider1,0,100)/100;
+protect_target=clamp(slider3,0,100)/100;
+gain_target=exp(clamp(slider7,-18,12)*log(10)/20);
+dry_target=slider6==1; removed_target=slider6==2;
+
+@sample
+p=tick&ring_mask;
+in_l[p]=spl0; in_r[p]=spl1;
+level=max(abs(spl0),abs(spl1));
+coeff=level>fast_env ? fast_attack : fast_release;
+fast_env=level+(fast_env-level)*coeff;
+coeff=level>slow_env ? slow_attack : slow_release;
+slow_env=level+(slow_env-level)*coeff;
+transients[p]=clamp((fast_env/max(0.000000001,slow_env)-1.8)/2.2,0,1);
+until_frame-=1;
+until_frame<=0 ? (frame(); until_frame=hop;);
+q=(tick-latency)&ring_mask;
+dry_l=in_l[q]; dry_r=in_r[q];
+// Removal of a new partial starts up to n/2 before its onset (STFT smearing), so
+// hold each transient flag from that far ahead of the output until it arrives.
+ahead=transients[(q+lookahead)&ring_mask];
+ahead>=hold ? (
+  hold=ahead; hold_left=lookahead;
+) : (
+  hold_left>0 ? hold_left-=1 : hold=max(ahead,hold*hold_release);
+);
+guard=max(transients[q],hold);
+guard_sm=guard>guard_sm ? guard_sm+(guard-guard_sm)*guard_attack : guard;
+amount_sm=amount_target+(amount_sm-amount_target)*control_coeff;
+protect_sm=protect_target+(protect_sm-protect_target)*control_coeff;
+gain_sm=gain_target+(gain_sm-gain_target)*control_coeff;
+listen_dry=dry_target+(listen_dry-dry_target)*control_coeff;
+listen_removed=removed_target+(listen_removed-removed_target)*control_coeff;
+// Only the young-partial share is protected; established tones keep full removal.
+young_protect=protect_sm*guard_sm;
+removed_l=(out_l[p]-young_protect*out_yl[p])*amount_sm;
+removed_r=(out_r[p]-young_protect*out_yr[p])*amount_sm;
+out_l[p]=out_r[p]=out_yl[p]=out_yr[p]=0;
+clean_l=dry_l-removed_l; clean_r=dry_r-removed_r;
+processed_mix=1-listen_dry-listen_removed;
+// Gain applies equally to all monitor modes, preserving comparison and sum tests.
+spl0=(processed_mix*clean_l+listen_dry*dry_l+listen_removed*removed_l)*gain_sm;
+spl1=(processed_mix*clean_r+listen_dry*dry_r+listen_removed*removed_r)*gain_sm;
+meter_in=max(max(abs(dry_l),abs(dry_r)),meter_in*meter_decay);
+meter_out=max(max(abs(spl0),abs(spl1)),meter_out*meter_decay);
+meter_removed=max(max(abs(removed_l),abs(removed_r)),meter_removed*meter_decay);
+tick+=1;
+
+@gfx 1250 588
+// The UI reads the meters and the spectrum arrays; all other memory belongs to the
+// audio thread, which runs concurrently, so this section only calls functions it
+// defines itself (not clamp/db from @init). The layout is authored on a 1000x470
+// canvas and scaled to the window: enlarging the window enlarges the text. The
+// requested size is 1.25x the canvas so text is comfortable on 125% Windows scaling.
+function rgb(c) ( gfx_set(((c>>16)&255)/255,((c>>8)&255)/255,(c&255)/255,1); );
+function rgba(c,a) ( gfx_set(((c>>16)&255)/255,((c>>8)&255)/255,(c&255)/255,a); );
+function mix(c1,c2,t) (
+  (floor(((c1>>16)&255)*(1-t)+((c2>>16)&255)*t+0.5)<<16)
+  +(floor(((c1>>8)&255)*(1-t)+((c2>>8)&255)*t+0.5)<<8)
+  +floor((c1&255)*(1-t)+(c2&255)*t+0.5);
+);
+function lim(v,a,b) ( min(b,max(a,v)); );
+function sx(v) ( gox+v*gs; );
+function sy(v) ( goy+v*gs; );
+function sz(v) ( v*gs; );
+function hit(x,y,w,h) ( mx>=x && mx<x+w && my>=y && my<y+h; );
+// One font slot per size and weight: changing a slot's size recreates the font.
+function font(slot,size,bold) (
+  gfx_setfont(slot,"Microsoft YaHei UI",max(8,floor(size*gs+0.5)),bold ? 'b' : 0);
+);
+function f_title() ( font(1,28,1); );
+function f_sub() ( font(2,16,0); );
+function f_head() ( font(3,16,1); );
+function f_label() ( font(4,17,1); );
+function f_label_big() ( font(5,19,1); );
+function f_value() ( font(6,15,1); );
+function f_value_big() ( font(7,17,1); );
+function f_button() ( font(8,18,1); );
+function f_caption() ( font(9,15,0); );
+function f_pill() ( font(10,14,1); );
+function f_small() ( font(11,13,0); );
+function f_axis() ( font(12,12,0); );
+function f_note() ( font(13,14,0); );
+function text_c(x,y,str) local(w,h) (
+  gfx_measurestr(str,w,h); gfx_x=sx(x)-w/2; gfx_y=sy(y)-h/2; gfx_drawstr(str);
+);
+function text_l(x,y,str) local(w,h) (
+  gfx_measurestr(str,w,h); gfx_x=sx(x); gfx_y=sy(y)-h/2; gfx_drawstr(str);
+);
+function text_r(x,y,str) local(w,h) (
+  gfx_measurestr(str,w,h); gfx_x=sx(x)-w; gfx_y=sy(y)-h/2; gfx_drawstr(str);
+);
+function box(x,y,w,h) (
+  gfx_rect(floor(sx(x)+0.5),floor(sy(y)+0.5),max(1,floor(sz(w)+0.5)),max(1,floor(sz(h)+0.5)));
+);
+function rrect(x,y,w,h,r) local(x0,y0,w0,h0,r0) (
+  // Filled rounded rectangle: gfx_roundrect only strokes, so use two
+  // rectangles plus four antialiased corner discs.
+  x0=floor(sx(x)+0.5); y0=floor(sy(y)+0.5); w0=floor(sz(w)+0.5); h0=floor(sz(h)+0.5);
+  r0=min(floor(sz(r)+0.5),floor(min(w0,h0)/2));
+  gfx_rect(x0+r0,y0,w0-2*r0,h0); gfx_rect(x0,y0+r0,w0,h0-2*r0);
+  gfx_circle(x0+r0,y0+r0,r0,1,1); gfx_circle(x0+w0-r0-1,y0+r0,r0,1,1);
+  gfx_circle(x0+r0,y0+h0-r0-1,r0,1,1); gfx_circle(x0+w0-r0-1,y0+h0-r0-1,r0,1,1);
+);
+function rrect_line(x,y,w,h,r) (
+  gfx_roundrect(floor(sx(x)+0.5),floor(sy(y)+0.5),floor(sz(w)+0.5)-1,floor(sz(h)+0.5)-1,sz(r),1);
+);
+function card(x,y,w,h,fill,edge) (
+  rgba(0,0.06); rrect(x,y+2,w,h,14);
+  rgb(fill); rrect(x,y,w,h,14);
+  edge ? (rgb(edge); rrect_line(x,y,w,h,14););
+);
+function grad_card(x,y,w,h,c1,c2) local(x0,y0,w0,h0,r0,r1,g1,b1,d_r,d_g,d_b,t) (
+  // Vertical gradient; each corner disc takes the colour of its own rows.
+  rgba(0,0.06); rrect(x,y+2,w,h,14);
+  x0=floor(sx(x)+0.5); y0=floor(sy(y)+0.5); w0=floor(sz(w)+0.5); h0=floor(sz(h)+0.5);
+  r0=floor(sz(14)+0.5);
+  r1=((c1>>16)&255)/255; g1=((c1>>8)&255)/255; b1=(c1&255)/255;
+  d_r=(((c2>>16)&255)/255-r1)/h0; d_g=(((c2>>8)&255)/255-g1)/h0; d_b=((c2&255)/255-b1)/h0;
+  t=r0; gfx_set(r1+d_r*t,g1+d_g*t,b1+d_b*t,1);
+  gfx_circle(x0+r0,y0+r0,r0,1,1); gfx_circle(x0+w0-r0-1,y0+r0,r0,1,1);
+  t=h0-r0-1; gfx_set(r1+d_r*t,g1+d_g*t,b1+d_b*t,1);
+  gfx_circle(x0+r0,y0+h0-r0-1,r0,1,1); gfx_circle(x0+w0-r0-1,y0+h0-r0-1,r0,1,1);
+  gfx_gradrect(x0+r0,y0,w0-2*r0,h0,r1,g1,b1,1,0,0,0,0,d_r,d_g,d_b,0);
+  gfx_gradrect(x0,y0+r0,r0,h0-2*r0,r1+d_r*r0,g1+d_g*r0,b1+d_b*r0,1,0,0,0,0,d_r,d_g,d_b,0);
+  gfx_gradrect(x0+w0-r0,y0+r0,r0,h0-2*r0,r1+d_r*r0,g1+d_g*r0,b1+d_b*r0,1,0,0,0,0,d_r,d_g,d_b,0);
+);
+function pill_r(xr,y,str,bg,fg) local(w,h) (
+  // Pill tag sized to its text, right edge at xr.
+  f_pill(); gfx_measurestr(str,w,h); w=w/gs+18;
+  rgb(bg); rrect(xr-w,y,w,24,12);
+  rgb(fg); text_c(xr-w/2,y+12,str);
+);
+function card_head(x,y,title,col) ( f_head(); rgb(col); text_l(x+16,y+22,title); );
+function value_box(cx,y,w,h,str,bg,fg,edge,big) (
+  rgb(bg); rrect(cx-w/2,y,w,h,6);
+  edge ? (rgb(edge); rrect_line(cx-w/2,y,w,h,6););
+  big ? f_value_big() : f_value();
+  rgb(fg); text_c(cx,y+h/2,str);
+);
+function fmt_hz(v) ( v<1000 ? sprintf(#fmt,"%.0f Hz",v) : sprintf(#fmt,"%.1f kHz",v/1000); #fmt; );
+function thick_line(x1,y1,x2,y2,w) local(dx,dy,l,nx,ny) (
+  // Antialiased stroke w pixels wide with round caps.
+  dx=x2-x1; dy=y2-y1; l=max(0.001,sqrt(dx*dx+dy*dy));
+  nx=-dy/l*w*0.5; ny=dx/l*w*0.5;
+  gfx_triangle(x1+nx,y1+ny,x2+nx,y2+ny,x2-nx,y2-ny,x1-nx,y1-ny);
+  gfx_line(x1+nx,y1+ny,x2+nx,y2+ny,1); gfx_line(x1-nx,y1-ny,x2-nx,y2-ny,1);
+  gfx_circle(x1,y1,w*0.5,1,1); gfx_circle(x2,y2,w*0.5,1,1);
+);
+function knob_draw(cx,cy,r,norm,theme,hot) local(x0,y0,rr,a,sa,ca,w,rt,ring,face,tk) (
+  // Thick dark ring, light face, pointer and end ticks. Theme: 1 light card,
+  // 2 gold, 3 blue, 4 red, 5 dark teal.
+  ring=theme==5 ? 0x0B141A : 0x1C1B19; face=theme==5 ? 0xF4F1EA : 0xF8F5EE;
+  tk=theme==1 ? 0x3C3A35 : theme==2 ? 0x3B2A0A : theme==3 ? 0x0E2F40 : theme==4 ? 0x3A0E0D : 0x8FA9B5;
+  x0=sx(cx); y0=sy(cy); rr=sz(r);
+  rgba(tk,0.35); gfx_circle(x0,y0,rr+max(1,sz(1)),0,1);
+  rgb(hot ? mix(ring,0xFFFFFF,0.25) : ring); gfx_circle(x0,y0,rr,1,1);
+  rgb(face); gfx_circle(x0,y0,rr*0.84,1,1);
+  a=-2.356+4.712*lim(norm,0,1); sa=sin(a); ca=cos(a);
+  rgb(ring); thick_line(x0+sa*rr*0.28,y0-ca*rr*0.28,x0+sa*rr*0.7,y0-ca*rr*0.7,max(2,sz(r>50 ? 4.5 : 3.5)));
+  rgb(tk); w=max(1.5,sz(2.2)); sa=0.7071; ca=-0.7071; rt=rr+sz(4);
+  thick_line(x0-sa*rt,y0-ca*rt,x0-sa*(rt+sz(5)),y0-ca*(rt+sz(5)),w);
+  thick_line(x0+sa*rt,y0-ca*rt,x0+sa*(rt+sz(5)),y0-ca*(rt+sz(5)),w);
+);
+function update_slider(id,value) local(bits) (
+  slider(id)=value;
+  bits=1<<(id-1); sliderchange(bits); slider_automate(bits);
+);
+function knob_set(id,v) (
+  // The band stays ordered and in whole hertz, as the sliders define it.
+  id==4 ? (v=floor(min(v,slider5)+0.5);) : id==5 ? (v=floor(max(v,slider4)+0.5););
+  update_slider(id,v);
+);
+function reset_to(id,v) ( knob_set(id,v); slider_automate(1<<(id-1),1); );
+function knob_input(id,cx,cy,r,low,high,def,is_log,wheel) local(v,norm,now) (
+  // Vertical drag (Shift for fine), wheel, double-click or right-click to reset.
+  v=slider(id);
+  norm=is_log ? log(max(low,v)/low)/log(high/low) : (v-low)/(high-low);
+  hit(cx-r-8,cy-r-8,2*r+16,2*r+16) ? (
+    hover_id=id;
+    clicked ? (
+      // Double-click window matches the Windows default (500 ms).
+      now=time_precise();
+      now-last_click_t<0.5 && last_click_id==id ? (
+        reset_to(id,def); last_click_t=0;
+      ) : (
+        active=id; active_src=1; drag_y=my; drag_norm=norm;
+        last_click_t=now; last_click_id=id;
+      );
+    );
+    right_clicked ? reset_to(id,def);
+    mouse_wheel!=0 ? (
+      is_log ? knob_set(id,low*exp(lim(norm+mouse_wheel/120*wheel,0,1)*log(high/low)))
+             : knob_set(id,lim(v+mouse_wheel/120*wheel,low,high));
+      slider_automate(1<<(id-1),1);
+      mouse_wheel=0;
+    );
+  );
+  active==id && active_src==1 && (mouse_cap&1) ? (
+    // A press that actually dragged is not the first half of a double-click.
+    my!=drag_y ? last_click_t=0;
+    norm=lim(drag_norm+(drag_y-my)*((mouse_cap&8) ? 0.001 : 0.005),0,1);
+    knob_set(id,is_log ? low*exp(norm*log(high/low)) : low+norm*(high-low));
+    drag_y=my; drag_norm=norm;
+  );
+);
+function knob_ctl(id,cx,cy,r,low,high,def,is_log,wheel,theme) local(v) (
+  knob_input(id,cx,cy,r,low,high,def,is_log,wheel);
+  v=slider(id);
+  knob_draw(cx,cy,r,is_log ? log(max(low,v)/low)/log(high/low) : (v-low)/(high-low),
+    theme,hover_id==id || (active==id && active_src==1));
+);
+function mon_button(y,idx,label) local(sel,hot) (
+  sel=slider6==idx; hot=hit(30,y,112,50);
+  hot && clicked ? (update_slider(6,idx); slider_automate(32,1););
+  rgb(sel ? 0x1F1F1D : hot ? 0xF4EFE5 : 0xFFFFFF); rrect(30,y,112,50,10);
+  !sel ? (rgb(hot ? 0xBDB5A5 : 0xD9D2C4); rrect_line(30,y,112,50,10););
+  f_button(); rgb(sel ? 0xFFFFFF : 0x1F1F1D); text_c(86,y+25,label);
+);
+function hmeter(y,label,v,color) instance(peak,peak_t) local(now,fill) (
+  // Horizontal peak meter, -60..0 dBFS, with a 1 s peak-hold readout.
+  now=time_precise();
+  v>=peak || now-peak_t>1 ? (peak=v; peak_t=now;);
+  f_caption(); rgb(0x3C3A35); text_l(822,y,label);
+  rgb(0xE6E0D4); rrect(862,y-5,68,10,5);
+  fill=lim((20*log10(max(0.000000001,v))+60)/60,0,1);
+  fill>0 ? (rgb(v>1 ? 0xE0473B : color); rrect(862,y-5,max(10,68*fill),10,5););
+  f_small(); rgb(0x6B665C);
+  peak<0.001 ? text_r(972,y,"-∞") : (sprintf(#pk,"%.1f",20*log10(peak)); text_r(972,y,#pk););
+);
+function fx(f) ( 536+246*lim(log(f/20)/log(1000),0,1); );
+function fy(d) ( 308+116*(1-lim((d+84)/84,0,1)); );
+function spectrum() local(b,t,top,now,dt,stale,din,dout,lo_x,hi_x,xa,xb,yz,sel,y,hot) (
+  // Background; shade what lies outside the processing band.
+  rgb(0x13252E); rrect(536,300,246,142,8);
+  lo_x=fx(min(slider4,slider5)); hi_x=fx(min(max(slider4,slider5),srate*0.48));
+  rgb(0x0B171D);
+  lo_x>540 ? box(540,304,lo_x-540,134);
+  hi_x<778 ? box(hi_x,304,778-hi_x,134);
+  rgb(0x1E3642); box(fx(100),304,1,134); box(fx(1000),304,1,134); box(fx(10000),304,1,134);
+  rgb(0x2D4654); rrect_line(536,300,246,142,8);
+  // Per-band powers from the audio thread -> dB; rise at once, fall ~90 dB/s,
+  // and fall away once no new analysis frames arrive (transport stopped).
+  now=time_precise(); dt=lim(now-spec_t,0,0.2); spec_t=now;
+  frame_count!=spec_frame ? (spec_frame=frame_count; spec_fresh=now;);
+  stale=now-spec_fresh>0.3;
+  t=8/(n*n); b=0;
+  loop(disp_bands,
+    din=stale ? -120 : 10*log10(max(0.000000000001,disp_in[b]*t));
+    dout=stale ? -120 : 10*log10(max(0.000000000001,disp_out[b]*t));
+    ui_in[b]=max(din,ui_in[b]-90*dt); ui_out[b]=max(dout,ui_out[b]-90*dt);
+    b+=1;
+  );
+  top=log(min(20000,srate*0.5)/20); yz=sy(424);
+  b=0;
+  loop(disp_bands-1,
+    xa=sx(fx(20*exp((b+0.5)/disp_bands*top))); xb=sx(fx(20*exp((b+1.5)/disp_bands*top)));
+    rgba(0x7FD1C1,0.16); gfx_triangle(xa,sy(fy(ui_in[b])),xb,sy(fy(ui_in[b+1])),xb,yz,xa,yz);
+    rgba(0x7FD1C1,0.95); gfx_line(xa,sy(fy(ui_in[b])),xb,sy(fy(ui_in[b+1])),1);
+    b+=1;
+  );
+  rgb(0xE8A23A); b=0;
+  loop(disp_bands-1,
+    xa=sx(fx(20*exp((b+0.5)/disp_bands*top))); xb=sx(fx(20*exp((b+1.5)/disp_bands*top)));
+    thick_line(xa,sy(fy(ui_out[b])),xb,sy(fy(ui_out[b+1])),max(1,sz(1.6)));
+    b+=1;
+  );
+  // Band edges: drag to move, double-click or right-click to reset.
+  hit(536,300,246,142) ? (
+    sel=mx>(lo_x+hi_x)/2 ? 5 : 4;
+    abs(mx-(sel==4 ? lo_x : hi_x))<=7 ? (
+      hover_id=10+sel;
+      clicked ? (
+        now-last_click_t<0.5 && last_click_id==10+sel ? (
+          reset_to(sel,sel==4 ? 120 : 16000); last_click_t=0;
+        ) : (
+          active=sel; active_src=2; drag_x=mx; last_click_t=now; last_click_id=10+sel;
+        );
+      );
+      right_clicked ? reset_to(sel,sel==4 ? 120 : 16000);
+    );
+  );
+  active_src==2 && (mouse_cap&1) ? (
+    mx!=drag_x ? last_click_t=0;
+    knob_set(active,20*exp(lim((mx-536)/246,0,1)*log(1000)));
+  );
+  lo_x=fx(min(slider4,slider5)); hi_x=fx(min(max(slider4,slider5),srate*0.48));
+  // Dashes stop above the axis labels.
+  rgb(0xC8D7DD); y=304;
+  loop(20, box(lo_x,y,1,3); box(hi_x,y,1,3); y+=6;);
+  hot=hover_id==14 || (active_src==2 && active==4);
+  rgb(hot ? 0xFFFFFF : 0xC8D7DD); gfx_circle(sx(lo_x),sy(310),sz(hot ? 6.5 : 5),1,1);
+  hot=hover_id==15 || (active_src==2 && active==5);
+  rgb(hot ? 0xFFFFFF : 0xC8D7DD); gfx_circle(sx(hi_x),sy(310),sz(hot ? 6.5 : 5),1,1);
+  f_axis(); rgb(0x8FA9B5);
+  text_c(fx(100),433,"100"); text_c(fx(1000),433,"1k"); text_c(fx(10000),433,"10k");
+);
+
+gs=max(0.6,min(gfx_w/1000,gfx_h/470));
+gox=max(0,floor((gfx_w-1000*gs)/2)); goy=max(0,floor((gfx_h-470*gs)/2));
+mx=(mouse_x-gox)/gs; my=(mouse_y-goy)/gs;
+clicked=(mouse_cap&1) && !(old_cap&1);
+right_clicked=(mouse_cap&2) && !(old_cap&2);
+!(mouse_cap&1) && (old_cap&1) && active>0 ? (
+  slider_automate(1<<(active-1),1); active=0; active_src=0;
+);
+hover_id=0;
+gfx_clear=0xE6+0xE1*256+0xD5*65536;
+rgb(0xF3EFE6); rrect(0,0,1000,470,16); rgb(0xDCD5C7); rrect_line(0,0,1000,470,16);
+
+// Header: title, credit with latency, native parameter toggle.
+f_title(); rgb(0x1E1E1C); text_l(28,36,"MC Tonal Reducer");
+f_sub(); rgb(0x8A857B); text_l(28,68,"音调抑制 · 保留质感 · 自然干净");
+rgb(0xFBF9F4); rrect(556,20,212,52,8); rgb(0xE2DBCD); rrect_line(556,20,212,52,8);
+rgb(0xE07B39); box(563,28,3,36);
+f_small(); rgb(0x9A948A); text_l(576,34,"CREATED BY");
+f_value_big(); rgb(0x1E1E1C); text_l(576,57,"MC Scripts");
+f_note(); rgb(0x6B665C);
+sprintf(#lat,"延迟 %.1f ms",1000*latency/max(1,srate)); text_r(756,57,#lat);
+hot=hit(784,24,192,44);
+hot && clicked ? (show_native=!show_native; slider_show(127,show_native); sliderchange(-1););
+rgb(hot ? 0x3A3834 : 0x1F1F1D); rrect(784,24,192,44,10);
+rgb(0xFFFFFF); box(804,37,16,2); box(804,45,16,2); box(804,53,16,2);
+f_value_big(); text_l(832,46,show_native ? "收起参数" : "原生参数");
+
+// Monitor.
+card(16,96,140,360,0xFBF9F4,0xE3DCCE);
+card_head(16,96,"试听",0x1E1E1C); pill_r(144,108,"对比",0x2A2A28,0xFFFFFF);
+mon_button(150,0,"处理后"); mon_button(212,1,"原音"); mon_button(274,2,"移除部分");
+rgb(0xE3DCCE); box(30,348,112,1);
+f_caption(); rgb(0x8A857B);
+text_c(86,371,"拖动调节"); text_c(86,395,"Shift 微调"); text_c(86,419,"双击复位");
+
+// Reduction.
+grad_card(168,96,180,360,0xE6C36F,0xCFA046);
+card_head(168,96,"削弱",0x3B2A0A); pill_r(332,108,"音调",0x3B2A0A,0xF6E7C4);
+f_label_big(); rgb(0x2B1E05); text_c(258,157,"削弱力度");
+knob_ctl(1,258,236,60,0,100,50,0,1,2);
+sprintf(#v1,"%.1f",slider1); strcat(#v1,"%");
+value_box(258,312,90,30,#v1,0x2B2418,0xFFFFFF,0,1);
+f_caption(); rgb(0x4A3408); text_c(258,377,"减去识别出的"); text_c(258,399,"音调成分比例");
+
+// Band: high edge on blue, low edge on red.
+rgba(0,0.06); rrect(360,98,150,360,14);
+rgb(0x5E9FBF); rrect(360,96,150,360,14);
+rgb(0xD65B57); rrect(360,276,150,180,14); box(360,276,150,14);
+card_head(360,96,"频段",0x0E2F40); pill_r(498,108,"保护两端",0x0E2F40,0xDDEFF7);
+f_label(); rgb(0x0E2F40); text_c(435,152,"上限");
+knob_ctl(5,435,202,34,20,20000,16000,1,0.01,3);
+value_box(435,244,80,24,fmt_hz(slider5),0x0E2F40,0xFFFFFF,0,0);
+f_label(); rgb(0x3A0E0D); text_c(435,300,"下限");
+knob_ctl(4,435,350,34,20,20000,120,1,0.01,4);
+value_box(435,392,80,24,fmt_hz(slider4),0x3A0E0D,0xFFFFFF,0,0);
+
+// Detection and protection, with the live spectrum.
+card(522,96,274,360,0x1D3440,0);
+card_head(522,96,"识别与保护",0xE8F1F4); pill_r(780,108,"实时",0xE8F1F4,0x1D3440);
+f_label(); rgb(0xE8F1F4); text_c(592,146,"识别灵敏度"); text_c(726,146,"瞬态保护");
+knob_ctl(2,592,204,38,0,100,50,0,1,5);
+knob_ctl(3,726,204,38,0,100,80,0,1,5);
+sprintf(#v2,"%.0f",slider2); strcat(#v2,"%");
+value_box(592,250,70,24,#v2,0x0E1A20,0xFFFFFF,0x3E5A67,0);
+sprintf(#v3,"%.0f",slider3); strcat(#v3,"%");
+value_box(726,250,70,24,#v3,0x0E1A20,0xFFFFFF,0x3E5A67,0);
+f_note(); rgb(0x7FD1C1); box(540,288,12,2); text_l(556,289,"输入");
+rgb(0xE8A23A); box(604,288,12,2); text_l(620,289,"处理后");
+spectrum();
+
+// Master: output gain and peak meters.
+card(808,96,176,360,0xFBF9F4,0xE3DCCE);
+card_head(808,96,"总控",0x1E1E1C); pill_r(968,108,"峰值",0x2A2A28,0xFFFFFF);
+f_label(); rgb(0x1E1E1C); text_c(896,152,"输出增益");
+knob_ctl(7,896,212,38,-18,12,0,0,0.2,1);
+sprintf(#v7,"%.1f dB",slider7);
+value_box(896,262,80,24,#v7,0xFFFFFF,0x1F1F1D,0xD9D2C4,0);
+rgb(0xE3DCCE); box(824,306,144,1);
+m_in.hmeter(332,"原音",meter_in,0x6E97A8);
+m_out.hmeter(368,"输出",meter_out,0xC9A24A);
+m_rem.hmeter(404,"移除",meter_removed,0xD9823B);
+
+old_cap=mouse_cap;
+// Drop wheel movement no control consumed, or it accumulates and jumps a knob later.
+mouse_wheel=0;

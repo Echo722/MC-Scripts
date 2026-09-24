@@ -1,0 +1,11 @@
+{
+	"type": "effect",
+	"category": "TonalReducer",
+	"files": {
+		"MC_TonalReducer.jsfx": {}
+	},
+	"version": "0.1.0beta2",
+	"package": "TonalReducer",
+	"time": "2026-09-24T02:47:11.000Z",
+	"changeLog": "First public beta of MC Tonal Reducer, a JSFX for sound design that turns down tonal content (sustained tones, short notes, chords and glides) while keeping impacts and noise texture. Stereo-linked partial tracking; transient protection that also suppresses pre-echo before attacks and leaves already-sounding tones alone; Processed / Original / Removed monitoring with identical latency (64 ms at 48 kHz); a scalable UI with a live spectrum. Requires REAPER 7.0+. This is a pre-release: in the package browser, right-click TonalReducer > Versions... to install it. Since the 0.1.0beta1 zip, Reduction is a percentage (0-100%, default 50%); projects saved with beta1 need it set again (6 dB = 50%, 12 dB = 75%, 24 dB = 94%).\n----\nMC Tonal Reducer 首个公开测试版：用于音效设计的音调抑制 JSFX，削弱持续音、短音符、和弦与滑音，同时保留冲击和噪声质感。左右声道联动的分音跟踪；瞬态保护会抑制起音前的预回声，且不会把已经在持续的音调放回；处理后／原音／移除部分三种试听延迟一致（48 kHz 下 64 ms）；界面可缩放，带实时频谱。需要 REAPER 7.0 以上。这是预发布版本：请在包浏览器里右键 TonalReducer，选 Versions... 安装。相对 0.1.0beta1 压缩包：削弱力度改为百分比（0–100%，默认 50%），用 beta1 保存的工程需要重新设置（6 dB≈50%，12 dB≈75%，24 dB≈94%）。"
+}

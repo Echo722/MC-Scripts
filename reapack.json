@@ -8,6 +8,11 @@
 		"MediaEye": {
 			"type": "script",
 			"category": "MediaEye"
+		},
+		"TonalReducer": {
+			"type": "effect",
+			"category": "TonalReducer",
+			"description": "MC Tonal Reducer"
 		}
 	}
 }
