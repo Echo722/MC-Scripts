@@ -24,6 +24,7 @@ REAPER/Effects/MC Scripts Release/<effect-folder>/
 
 - MediaEye: Media Explorer album art viewer for embedded and sidecar cover images.
 - TonalReducer (effect, beta): MC Tonal Reducer turns down sustained tones, notes, chords and glides in sound effects while keeping impacts and noise texture. It is a pre-release, so install it from the package browser with right-click > Versions...
+- ChannelFit: MC ChannelFit batch-exports regions as mono or stereo files depending on whether their left and right channels actually differ. Requires ReaImGui and js_ReaScriptAPI.
 
 ## Release Convention
 

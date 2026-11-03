@@ -7,7 +7,7 @@ https://github.com/Echo722/MC-Scripts/raw/main/index.xml
 REAPER/Scripts/MC Scripts Release/&lt;script-folder&gt;/
 \ul0\i0 \line\line Effects (JSFX) install under:\line\line \i\ul text
 REAPER/Effects/MC Scripts Release/&lt;effect-folder&gt;/
-\ul0\i0 \line\line {\fs24\b Packages\b}\line\line {\par \bullet\tab MediaEye: Media Explorer album art viewer for embedded and sidecar cover images.\line \bullet\tab TonalReducer (effect, beta): MC Tonal Reducer turns down sustained tones, notes, chords and glides in sound effects while keeping impacts and noise texture. It is a pre-release, so install it from the package browser with right-click &gt; Versions...\line }\line {\fs24\b Release Convention\b}\line\line Packages in this repository use:\line\line {\par \bullet\tab Author: \i\ul MC Scripts\ul0\i0 \line \bullet\tab Repository name: \i\ul MC Scripts Release\ul0\i0 \line \bullet\tab Category: \i\ul &lt;script-folder&gt;\ul0\i0  (or \i\ul &lt;effect-folder&gt;\ul0\i0 )\line \bullet\tab Source file paths: direct package files such as \i\ul MediaEye.lua\ul0\i0  or \i\ul MC_TonalReducer.jsfx\ul0\i0 \line }\line }</description>
+\ul0\i0 \line\line {\fs24\b Packages\b}\line\line {\par \bullet\tab MediaEye: Media Explorer album art viewer for embedded and sidecar cover images.\line \bullet\tab TonalReducer (effect, beta): MC Tonal Reducer turns down sustained tones, notes, chords and glides in sound effects while keeping impacts and noise texture. It is a pre-release, so install it from the package browser with right-click &gt; Versions...\line \bullet\tab ChannelFit: MC ChannelFit batch-exports regions as mono or stereo files depending on whether their left and right channels actually differ. Requires ReaImGui and js_ReaScriptAPI.\line }\line {\fs24\b Release Convention\b}\line\line Packages in this repository use:\line\line {\par \bullet\tab Author: \i\ul MC Scripts\ul0\i0 \line \bullet\tab Repository name: \i\ul MC Scripts Release\ul0\i0 \line \bullet\tab Category: \i\ul &lt;script-folder&gt;\ul0\i0  (or \i\ul &lt;effect-folder&gt;\ul0\i0 )\line \bullet\tab Source file paths: direct package files such as \i\ul MediaEye.lua\ul0\i0  or \i\ul MC_TonalReducer.jsfx\ul0\i0 \line }\line }</description>
 	</metadata>
 	<category name="MediaEye">
 		<reapack name="MediaEye" type="script">
@@ -52,6 +52,20 @@ Pin On Top(置顶)改为仅在 REAPER 处于前台时生效,切到浏览器等�
 				<changelog><![CDATA[First public beta of MC Tonal Reducer, a JSFX for sound design that turns down tonal content (sustained tones, short notes, chords and glides) while keeping impacts and noise texture. Stereo-linked partial tracking; transient protection that also suppresses pre-echo before attacks and leaves already-sounding tones alone; Processed / Original / Removed monitoring with identical latency (64 ms at 48 kHz); a scalable UI with a live spectrum. Requires REAPER 7.0+. This is a pre-release: in the package browser, right-click TonalReducer > Versions... to install it. Since the 0.1.0beta1 zip, Reduction is a percentage (0-100%, default 50%); projects saved with beta1 need it set again (6 dB = 50%, 12 dB = 75%, 24 dB = 94%).
 ----
 MC Tonal Reducer 首个公开测试版：用于音效设计的音调抑制 JSFX，削弱持续音、短音符、和弦与滑音，同时保留冲击和噪声质感。左右声道联动的分音跟踪；瞬态保护会抑制起音前的预回声，且不会把已经在持续的音调放回；处理后／原音／移除部分三种试听延迟一致（48 kHz 下 64 ms）；界面可缩放，带实时频谱。需要 REAPER 7.0 以上。这是预发布版本：请在包浏览器里右键 TonalReducer，选 Versions... 安装。相对 0.1.0beta1 压缩包：削弱力度改为百分比（0–100%，默认 50%），用 beta1 保存的工程需要重新设置（6 dB≈50%，12 dB≈75%，24 dB≈94%）。]]></changelog>
+			</version>
+		</reapack>
+	</category>
+	<category name="ChannelFit">
+		<reapack name="ChannelFit" type="script" desc="MC ChannelFit">
+			<metadata>
+			</metadata>
+			<version name="1.0" author="MC Scripts" time="2026-11-03T02:37:50.000Z">
+				<source file="MC_ChannelFit.lua" main="true">https://github.com/Echo722/MC-Scripts/raw/main/releases/ChannelFit/1.0/MC_ChannelFit.lua</source>
+				<source file="ChannelFit_core.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/ChannelFit/1.0/ChannelFit_core.lua</source>
+				<source file="MC_ChannelFit_Meter.jsfx">https://github.com/Echo722/MC-Scripts/raw/main/releases/ChannelFit/1.0/MC_ChannelFit_Meter.jsfx</source>
+				<changelog><![CDATA[First release of MC ChannelFit. Batch-exports regions with the channel count each file actually needs: a dry run measures the master mix of every region, regions whose left and right channels carry the same signal are rendered as mono files and all others stay stereo. One-sided, silent and incompletely measured regions are flagged and kept stereo; every region can be overridden by hand. Format, file names and output folder come from the project's render settings, which are restored afterwards. Works with Master mix or a region render matrix that uses only the Master column, bounds All regions / Selected regions, stereo channels. Requires REAPER 7.62+, ReaImGui 0.10+ and js_ReaScriptAPI.
+----
+MC ChannelFit 首个正式版。按 Region 批量导出时，按实际内容决定每个文件用单声道还是立体声：先 Dry run 测量每个 Region 的 Master 混音，左右声道内容相同的导成单声道，其余保持立体声。单侧有声、静音和没测全的 Region 会单独标出并保持立体声，每个 Region 都可以手动指定声道。格式、文件名和输出目录沿用工程的渲染设置，导完恢复原样。支持渲染源为 Master mix 或只勾了 Master 列的 Region 渲染矩阵、渲染范围为所有 Region 或选中的 Region、声道为立体声。需要 REAPER 7.62 以上、ReaImGui 0.10 以上和 js_ReaScriptAPI。]]></changelog>
 			</version>
 		</reapack>
 	</category>

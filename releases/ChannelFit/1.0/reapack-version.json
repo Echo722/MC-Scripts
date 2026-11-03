@@ -1,0 +1,15 @@
+{
+	"type": "script",
+	"category": "ChannelFit",
+	"files": {
+		"MC_ChannelFit.lua": {
+			"main": true
+		},
+		"ChannelFit_core.lua": {},
+		"MC_ChannelFit_Meter.jsfx": {}
+	},
+	"version": "1.0",
+	"package": "ChannelFit",
+	"time": "2026-11-03T02:37:50.000Z",
+	"changeLog": "First release of MC ChannelFit. Batch-exports regions with the channel count each file actually needs: a dry run measures the master mix of every region, regions whose left and right channels carry the same signal are rendered as mono files and all others stay stereo. One-sided, silent and incompletely measured regions are flagged and kept stereo; every region can be overridden by hand. Format, file names and output folder come from the project's render settings, which are restored afterwards. Works with Master mix or a region render matrix that uses only the Master column, bounds All regions / Selected regions, stereo channels. Requires REAPER 7.62+, ReaImGui 0.10+ and js_ReaScriptAPI.\n----\nMC ChannelFit 首个正式版。按 Region 批量导出时，按实际内容决定每个文件用单声道还是立体声：先 Dry run 测量每个 Region 的 Master 混音，左右声道内容相同的导成单声道，其余保持立体声。单侧有声、静音和没测全的 Region 会单独标出并保持立体声，每个 Region 都可以手动指定声道。格式、文件名和输出目录沿用工程的渲染设置，导完恢复原样。支持渲染源为 Master mix 或只勾了 Master 列的 Region 渲染矩阵、渲染范围为所有 Region 或选中的 Region、声道为立体声。需要 REAPER 7.62 以上、ReaImGui 0.10 以上和 js_ReaScriptAPI。"
+}

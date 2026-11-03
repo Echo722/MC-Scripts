@@ -13,6 +13,11 @@
 			"type": "effect",
 			"category": "TonalReducer",
 			"description": "MC Tonal Reducer"
+		},
+		"ChannelFit": {
+			"type": "script",
+			"category": "ChannelFit",
+			"description": "MC ChannelFit"
 		}
 	}
 }
