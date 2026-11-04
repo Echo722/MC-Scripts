@@ -1,0 +1,15 @@
+{
+	"type": "script",
+	"category": "ChannelFit",
+	"files": {
+		"MC_ChannelFit.lua": {
+			"main": true
+		},
+		"ChannelFit_core.lua": {},
+		"MC_ChannelFit_Meter.jsfx": {}
+	},
+	"version": "1.0.2",
+	"package": "ChannelFit",
+	"time": "2026-11-04T02:23:31.000Z",
+	"changeLog": "Fix: the Export button was clickable before any analysis and then failed with a script error (attempt to index a nil value 'analysis'). Export is now disabled until a region analysis exists, and its tooltip asks to run the analysis first.\n----\n修复：还没分析时「导出」按钮也能点，点了会报脚本错误（attempt to index a nil value 'analysis'）。现在没有分析结果时「导出」按钮是灰的，悬停提示先点「分析」。"
+}

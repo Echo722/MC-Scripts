@@ -75,6 +75,14 @@ MC ChannelFit 首个正式版。按 Region 批量导出时，按实际内容决�
 ----
 支持渲染设置里的第二输出格式。工程开了第二格式（例如 WAV + MP3）时，每个 Region 每种格式各导出一个文件，单声道/立体声的判定对两种格式都生效。导出前预检会确认每种格式都覆盖了所有 Region，有缺漏就不允许导出；确认框显示导出格式和按格式统计的同名文件数；日志按格式列出每一遍的结果，某一种格式一个文件都没写出时这一遍算作失败。Dry run 之后改了第二格式，会和其它渲染设置一样被检测出来。]]></changelog>
 			</version>
+			<version name="1.0.2" author="MC Scripts" time="2026-11-04T02:23:31.000Z">
+				<source file="MC_ChannelFit.lua" main="true">https://github.com/Echo722/MC-Scripts/raw/main/releases/ChannelFit/1.0.2/MC_ChannelFit.lua</source>
+				<source file="ChannelFit_core.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/ChannelFit/1.0.2/ChannelFit_core.lua</source>
+				<source file="MC_ChannelFit_Meter.jsfx">https://github.com/Echo722/MC-Scripts/raw/main/releases/ChannelFit/1.0.2/MC_ChannelFit_Meter.jsfx</source>
+				<changelog><![CDATA[Fix: the Export button was clickable before any analysis and then failed with a script error (attempt to index a nil value 'analysis'). Export is now disabled until a region analysis exists, and its tooltip asks to run the analysis first.
+----
+修复：还没分析时「导出」按钮也能点，点了会报脚本错误（attempt to index a nil value 'analysis'）。现在没有分析结果时「导出」按钮是灰的，悬停提示先点「分析」。]]></changelog>
+			</version>
 		</reapack>
 	</category>
 </index>

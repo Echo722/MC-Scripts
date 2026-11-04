@@ -1,0 +1,284 @@
+desc:MC ChannelFit Meter
+// @author MC Scripts
+//
+// Measurement helper for MC_ChannelFit.lua. The script puts it at the end of
+// the master chain for one dry-run render and removes it again. Audio passes
+// through untouched; added by hand it does nothing.
+//
+// MC ChannelFit 的测量插件。脚本在 Dry run 时临时挂到 Master 末尾，测完就拿掉。
+// 不改动音频；手动挂上不会有任何作用。
+tags: analysis utility
+options:gmem=MC_ChannelFit
+
+in_pin:left input
+in_pin:right input
+out_pin:left output
+out_pin:right output
+
+@init
+ext_noinit = 0;
+
+// ---- gmem layout, shared with ChannelFit_core.lua: change both together ----
+// Written by the script before the dry run:
+//   [0] session token; 0 = idle. Measures only while [0] equals the token
+//       read at @init.
+//   [1] layout version the script expects
+//   [2] region count
+//   [3] silence gate: 10 ms windows whose louder channel has a mean power
+//       (linear) below this stay out of the energy sums
+//   [4] window length in seconds
+// Written by the meter:
+//   [8]  token the result rows were cleared for (ack)
+//   [9]  sample rate of the most recent @init
+//   [10] @init calls in this session (one per rendered file)
+//   [11] error: 0 ok, 1 tables do not fit in gmem, 2 layout mismatch
+//   [12] samples outside every region and not after the file's own region
+//   [13] position jumps inside a rendered file
+// Region table from [64], 4 slots per region, sorted by start:
+//   start whole seconds, start fraction, end whole seconds, end fraction.
+//   The end includes the render tail, so it may pass the next region's start.
+//   Whole/fraction split keeps sample accuracy even if gmem holds floats.
+// One result row per region after the table, 16 slots each:
+//   +0 samples  +1 windows  +2 windows above the gate
+//   +3 eL  +4 eR  +5 eLR  +6 eS          sums over windows above the gate
+//   +7 peak L  +8 peak R  +9 peak M  +10 peak S   over all samples
+//   +11 sum L  +12 sum R  +13 samples    over windows above the gate, so the
+//                                        script can take out a DC offset
+//   +14 sample rate the row was measured at
+//   +15 samples rendered after this region's end in its own file: REAPER
+//       renders whole blocks, so the last block runs past the end
+// M = (L+R)/2, S = (L-R)/2, so eM = (eL+eR+2*eLR)/4 and the correlation is
+// eLR/sqrt(eL*eR). eS is summed directly: deriving it as (eL+eR-2*eLR)/4
+// cancels down to rounding noise once S is 60 dB or more below M.
+//
+// Each rendered file belongs to one region: the first region a file enters
+// is locked, and audio after its end is block padding (+15), never added to
+// a neighbouring region. A position jump unlocks, so the next region entered
+// is locked instead.
+LAYOUT = 2;
+MAX_SLOTS = 8388608;  // 2^23: assume no more gmem than this
+TBL = 64;
+IN_STRIDE = 4;
+OUT_STRIDE = 16;
+NFIELD = 15;          // fields 0..14 go through the accumulators; +15 is written directly
+JUMP_TOL = 3;         // samples; play_position rounding at block edges stays below this
+A = 0;                // mem[A..]: running totals of the region in acc_reg
+B = 16;               // mem[B..]: scratch copy for commit_partial()
+
+sess = gmem[0];
+run_ok = 0;
+cur = -1;
+next_check = 0;
+have_pos = 0;
+pos = 0;
+bidx = 0;
+wreg = -1;
+acc_reg = -1;
+lock = -1;
+lock_end = 0;
+over_idx = 0;
+wn = 0;
+weL = weR = weLR = weS = 0;
+wsL = wsR = 0;
+wpL = wpR = wpM = wpS = 0;
+
+sess != 0 ? (
+  nreg = floor(gmem[2]);
+  res = TBL + IN_STRIDE * nreg;
+  gmem[1] != LAYOUT ? (
+    gmem[11] = 2;
+  ) : nreg < 1 || res + nreg * OUT_STRIDE > MAX_SLOTS ? (
+    gmem[11] = 1;
+  ) : (
+    gmem[8] != sess ? (
+      // first @init of this session: clear the result rows and counters
+      r = 0;
+      while (r < nreg) (
+        o = res + r * OUT_STRIDE;
+        k = 0;
+        while (k < OUT_STRIDE) (
+          gmem[o + k] = 0;
+          k += 1;
+        );
+        r += 1;
+      );
+      gmem[10] = 0;
+      gmem[11] = 0;
+      gmem[12] = 0;
+      gmem[13] = 0;
+      gmem[8] = sess;
+    );
+    gmem[9] = srate;
+    gmem[10] += 1;
+    outside = gmem[12];
+    jumps = gmem[13];
+    gate = gmem[3];
+    win = max(16, floor(srate * gmem[4] + 0.5));
+    run_ok = 1;
+  );
+);
+
+function reg_start(r) (
+  floor((gmem[TBL + IN_STRIDE * r] + gmem[TBL + IN_STRIDE * r + 1]) * srate + 0.5);
+);
+
+function reg_end(r) (
+  floor((gmem[TBL + IN_STRIDE * r + 2] + gmem[TBL + IN_STRIDE * r + 3]) * srate + 0.5);
+);
+
+function load_acc(r) local(o, k) (
+  o = res + r * OUT_STRIDE;
+  k = 0;
+  while (k < NFIELD) (
+    A[k] = gmem[o + k];
+    k += 1;
+  );
+  acc_reg = r;
+);
+
+// Write totals t[] to the result row of the region in acc_reg.
+function store_row(t) local(o, k) (
+  o = res + acc_reg * OUT_STRIDE;
+  k = 0;
+  while (k < NFIELD) (
+    gmem[o + k] = t[k];
+    k += 1;
+  );
+);
+
+// Fold the open window into the totals at t[]. Peaks count every window;
+// energies and sums only count windows whose louder channel clears the gate.
+function add_window(t) local(pw) (
+  t[0] += wn;
+  t[1] += 1;
+  t[7] = max(t[7], wpL);
+  t[8] = max(t[8], wpR);
+  t[9] = max(t[9], wpM);
+  t[10] = max(t[10], wpS);
+  t[14] = srate;
+  pw = max(weL, weR) / wn;
+  pw > 0 && pw >= gate ? (
+    t[2] += 1;
+    t[3] += weL;
+    t[4] += weR;
+    t[5] += weLR;
+    t[6] += weS;
+    t[11] += wsL;
+    t[12] += wsR;
+    t[13] += wn;
+  );
+);
+
+// Finish the open window: add it to its region's row and start a new one.
+function close_window() (
+  wn > 0 && wreg >= 0 ? (
+    wreg != acc_reg ? load_acc(wreg);
+    add_window(A);
+    store_row(A);
+  );
+  wn = 0;
+  weL = weR = weLR = weS = 0;
+  wsL = wsR = 0;
+  wpL = wpR = wpM = wpS = 0;
+);
+
+// Publish the totals plus the still-open window without closing it, so the
+// last few ms of a file count even if no further block arrives.
+function commit_partial() (
+  wn > 0 && wreg >= 0 ? (
+    wreg != acc_reg ? load_acc(wreg);
+    memcpy(B, A, NFIELD);
+    add_window(B);
+    store_row(B);
+  );
+);
+
+// Point cur at the region containing sample position p (or -1), and set
+// next_check to the next position where that answer can change.
+function find_region(p) local(lo, hi, mid, r) (
+  r = -1;
+  lo = 0;
+  hi = nreg - 1;
+  while (lo <= hi) (
+    mid = floor((lo + hi) / 2);
+    reg_start(mid) <= p ? (
+      r = mid;
+      lo = mid + 1;
+    ) : (
+      hi = mid - 1;
+    );
+  );
+  r >= 0 && p < reg_end(r) ? (
+    cur = r;
+    next_check = reg_end(r);
+  ) : (
+    cur = -1;
+    next_check = r + 1 < nreg ? reg_start(r + 1) : 10^300;
+  );
+);
+
+@block
+active = run_ok && gmem[0] == sess && (play_state & 1);
+active ? (
+  bpos = floor(play_position * srate + 0.5);
+  !have_pos ? (
+    pos = bpos;
+    find_region(pos);
+    have_pos = 1;
+  ) : abs(bpos - pos) > JUMP_TOL ? (
+    close_window();
+    jumps += 1;
+    gmem[13] = jumps;
+    lock = -1;
+    pos = bpos;
+    find_region(pos);
+  );
+  bidx = 0;
+) : (
+  have_pos ? close_window();
+  have_pos = 0;
+  lock = -1;
+);
+
+@sample
+active ? (
+  // Stay with the current region until its own end (tail included).
+  pos >= next_check ? (
+    close_window();
+    find_region(pos);
+  );
+  cur >= 0 && lock < 0 ? (
+    lock = cur;
+    lock_end = reg_end(lock);
+    over_idx = res + lock * OUT_STRIDE + 15;
+  );
+  cur >= 0 && cur == lock ? (
+    wreg != cur ? (
+      close_window();
+      wreg = cur;
+    );
+    xl = spl0;
+    xr = spl1;
+    xs = 0.5 * (xl - xr);
+    weL += xl * xl;
+    weR += xr * xr;
+    weLR += xl * xr;
+    weS += xs * xs;
+    wsL += xl;
+    wsR += xr;
+    wpL = max(wpL, abs(xl));
+    wpR = max(wpR, abs(xr));
+    wpM = max(wpM, abs(0.5 * (xl + xr)));
+    wpS = max(wpS, abs(xs));
+    wn += 1;
+    wn >= win ? close_window();
+  ) : lock >= 0 && pos >= lock_end ? (
+    gmem[over_idx] += 1;
+  ) : (
+    outside += 1;
+    gmem[12] = outside;
+  );
+  pos += 1;
+  bidx += 1;
+  bidx == samplesblock ? commit_partial();
+);
