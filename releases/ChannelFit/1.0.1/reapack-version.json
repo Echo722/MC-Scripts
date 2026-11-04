@@ -1,0 +1,15 @@
+{
+	"type": "script",
+	"category": "ChannelFit",
+	"files": {
+		"MC_ChannelFit.lua": {
+			"main": true
+		},
+		"ChannelFit_core.lua": {},
+		"MC_ChannelFit_Meter.jsfx": {}
+	},
+	"version": "1.0.1",
+	"package": "ChannelFit",
+	"time": "2026-11-04T02:13:37.000Z",
+	"changeLog": "Supports a secondary render format. When the project renders a second format (e.g. WAV + MP3), every region is exported once per format and the mono/stereo choice applies to both. The pre-export check verifies each format covers every region and blocks the export if one does not; the confirm dialog shows the formats and existing files per format; the log reports each pass per format, and a pass in which one format wrote nothing counts as failed. Changing the secondary format after the dry run is detected like other render settings.\n----\n支持渲染设置里的第二输出格式。工程开了第二格式（例如 WAV + MP3）时，每个 Region 每种格式各导出一个文件，单声道/立体声的判定对两种格式都生效。导出前预检会确认每种格式都覆盖了所有 Region，有缺漏就不允许导出；确认框显示导出格式和按格式统计的同名文件数；日志按格式列出每一遍的结果，某一种格式一个文件都没写出时这一遍算作失败。Dry run 之后改了第二格式，会和其它渲染设置一样被检测出来。"
+}

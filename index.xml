@@ -67,6 +67,14 @@ MC Tonal Reducer 首个公开测试版：用于音效设计的音调抑制 JSFX�
 ----
 MC ChannelFit 首个正式版。按 Region 批量导出时，按实际内容决定每个文件用单声道还是立体声：先 Dry run 测量每个 Region 的 Master 混音，左右声道内容相同的导成单声道，其余保持立体声。单侧有声、静音和没测全的 Region 会单独标出并保持立体声，每个 Region 都可以手动指定声道。格式、文件名和输出目录沿用工程的渲染设置，导完恢复原样。支持渲染源为 Master mix 或只勾了 Master 列的 Region 渲染矩阵、渲染范围为所有 Region 或选中的 Region、声道为立体声。需要 REAPER 7.62 以上、ReaImGui 0.10 以上和 js_ReaScriptAPI。]]></changelog>
 			</version>
+			<version name="1.0.1" author="MC Scripts" time="2026-11-04T02:13:37.000Z">
+				<source file="MC_ChannelFit.lua" main="true">https://github.com/Echo722/MC-Scripts/raw/main/releases/ChannelFit/1.0.1/MC_ChannelFit.lua</source>
+				<source file="ChannelFit_core.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/ChannelFit/1.0.1/ChannelFit_core.lua</source>
+				<source file="MC_ChannelFit_Meter.jsfx">https://github.com/Echo722/MC-Scripts/raw/main/releases/ChannelFit/1.0.1/MC_ChannelFit_Meter.jsfx</source>
+				<changelog><![CDATA[Supports a secondary render format. When the project renders a second format (e.g. WAV + MP3), every region is exported once per format and the mono/stereo choice applies to both. The pre-export check verifies each format covers every region and blocks the export if one does not; the confirm dialog shows the formats and existing files per format; the log reports each pass per format, and a pass in which one format wrote nothing counts as failed. Changing the secondary format after the dry run is detected like other render settings.
+----
+支持渲染设置里的第二输出格式。工程开了第二格式（例如 WAV + MP3）时，每个 Region 每种格式各导出一个文件，单声道/立体声的判定对两种格式都生效。导出前预检会确认每种格式都覆盖了所有 Region，有缺漏就不允许导出；确认框显示导出格式和按格式统计的同名文件数；日志按格式列出每一遍的结果，某一种格式一个文件都没写出时这一遍算作失败。Dry run 之后改了第二格式，会和其它渲染设置一样被检测出来。]]></changelog>
+			</version>
 		</reapack>
 	</category>
 </index>
