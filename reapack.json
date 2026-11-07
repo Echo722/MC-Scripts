@@ -18,6 +18,11 @@
 			"type": "script",
 			"category": "ChannelFit",
 			"description": "MC ChannelFit"
+		},
+		"ItemArrange": {
+			"type": "script",
+			"category": "ItemArrange",
+			"description": "MC ItemArrange"
 		}
 	}
 }

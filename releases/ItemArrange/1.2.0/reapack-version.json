@@ -1,0 +1,14 @@
+{
+	"type": "script",
+	"category": "ItemArrange",
+	"files": {
+		"MC_ItemArrange.lua": {
+			"main": true
+		},
+		"ItemArrange_core.lua": {}
+	},
+	"version": "1.2.0",
+	"package": "ItemArrange",
+	"time": "2026-11-07T08:35:00.000Z",
+	"changeLog": "First release of MC ItemArrange. Lays selected media items out at a fixed interval and snaps every item so its left edge sits on the grid line to its left. One dialog with two modes: Item end (each item starts a fixed number of seconds after the previous item ended, so unequal lengths never overlap) and Item start (each item starts a fixed number of seconds after the previous item started). Snap to grid is ticked by default and can be unticked to lay items out at exactly the interval without quantising. The first item keeps its position and merely snaps left; the rest follow in their current left-to-right order, across tracks. Locked items are skipped and reported, unselected members of a group follow it, and everything lands in a single undo step. The grid follows REAPER's current setting and snap tolerance is computed in the grid-index domain so items sitting exactly on a line are never pushed back a cell. Requires REAPER 6.0+ and ReaImGui 0.8+; SWS is optional but gives full grid support.\n----\nMC ItemArrange 首个版本。把选中的媒体对象按固定间隔摆开，同时让每个对象的左边界落在它左边的网格线上。一个对话框两个模式：结尾相隔（每个对象在上一个对象结尾之后固定秒数开始，长短不一也不会重叠）和起点相隔（比上一个对象起点晚固定秒数）。「Snap to grid」默认勾选，取消勾选就只按间隔精确摆开、不做量化。第一个对象保持原位、只向左吸附，其余按当前从左到右的顺序依次排列，可以跨轨道。锁定的对象跳过并提示，同组未选中的成员跟随，整次操作只产生一步撤销。网格跟随 REAPER 当前设置，吸附容差在网格索引域计算，正好压在网格线上的对象不会被多推一格。需要 REAPER 6.0 以上、ReaImGui 0.8 以上；SWS 可选，装了网格支持更全。"
+}

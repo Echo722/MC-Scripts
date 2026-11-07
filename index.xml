@@ -7,7 +7,7 @@ https://github.com/Echo722/MC-Scripts/raw/main/index.xml
 REAPER/Scripts/MC Scripts Release/&lt;script-folder&gt;/
 \ul0\i0 \line\line Effects (JSFX) install under:\line\line \i\ul text
 REAPER/Effects/MC Scripts Release/&lt;effect-folder&gt;/
-\ul0\i0 \line\line {\fs24\b Packages\b}\line\line {\par \bullet\tab MediaEye: Media Explorer album art viewer for embedded and sidecar cover images.\line \bullet\tab TonalReducer (effect, beta): MC Tonal Reducer turns down sustained tones, notes, chords and glides in sound effects while keeping impacts and noise texture. It is a pre-release, so install it from the package browser with right-click &gt; Versions...\line \bullet\tab ChannelFit: MC ChannelFit batch-exports regions as mono or stereo files depending on whether their left and right channels actually differ. Requires ReaImGui and js_ReaScriptAPI.\line }\line {\fs24\b Release Convention\b}\line\line Packages in this repository use:\line\line {\par \bullet\tab Author: \i\ul MC Scripts\ul0\i0 \line \bullet\tab Repository name: \i\ul MC Scripts Release\ul0\i0 \line \bullet\tab Category: \i\ul &lt;script-folder&gt;\ul0\i0  (or \i\ul &lt;effect-folder&gt;\ul0\i0 )\line \bullet\tab Source file paths: direct package files such as \i\ul MediaEye.lua\ul0\i0  or \i\ul MC_TonalReducer.jsfx\ul0\i0 \line }\line }</description>
+\ul0\i0 \line\line {\fs24\b Packages\b}\line\line {\par \bullet\tab MediaEye: Media Explorer album art viewer for embedded and sidecar cover images.\line \bullet\tab TonalReducer (effect, beta): MC Tonal Reducer turns down sustained tones, notes, chords and glides in sound effects while keeping impacts and noise texture. It is a pre-release, so install it from the package browser with right-click &gt; Versions...\line \bullet\tab ChannelFit: MC ChannelFit batch-exports regions as mono or stereo files depending on whether their left and right channels actually differ. Requires ReaImGui and js_ReaScriptAPI.\line \bullet\tab ItemArrange: MC ItemArrange lays selected items out at a fixed interval and snaps each one&apos;s left edge to the grid line on its left, with an optional snap toggle. Requires ReaImGui.\line }\line {\fs24\b Release Convention\b}\line\line Packages in this repository use:\line\line {\par \bullet\tab Author: \i\ul MC Scripts\ul0\i0 \line \bullet\tab Repository name: \i\ul MC Scripts Release\ul0\i0 \line \bullet\tab Category: \i\ul &lt;script-folder&gt;\ul0\i0  (or \i\ul &lt;effect-folder&gt;\ul0\i0 )\line \bullet\tab Source file paths: direct package files such as \i\ul MediaEye.lua\ul0\i0  or \i\ul MC_TonalReducer.jsfx\ul0\i0 \line }\line }</description>
 	</metadata>
 	<category name="MediaEye">
 		<reapack name="MediaEye" type="script">
@@ -82,6 +82,19 @@ MC ChannelFit 首个正式版。按 Region 批量导出时，按实际内容决�
 				<changelog><![CDATA[Fix: the Export button was clickable before any analysis and then failed with a script error (attempt to index a nil value 'analysis'). Export is now disabled until a region analysis exists, and its tooltip asks to run the analysis first.
 ----
 修复：还没分析时「导出」按钮也能点，点了会报脚本错误（attempt to index a nil value 'analysis'）。现在没有分析结果时「导出」按钮是灰的，悬停提示先点「分析」。]]></changelog>
+			</version>
+		</reapack>
+	</category>
+	<category name="ItemArrange">
+		<reapack name="ItemArrange" type="script" desc="MC ItemArrange">
+			<metadata>
+			</metadata>
+			<version name="1.2.0" author="MC Scripts" time="2026-11-07T08:35:00.000Z">
+				<source file="MC_ItemArrange.lua" main="true">https://github.com/Echo722/MC-Scripts/raw/main/releases/ItemArrange/1.2.0/MC_ItemArrange.lua</source>
+				<source file="ItemArrange_core.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/ItemArrange/1.2.0/ItemArrange_core.lua</source>
+				<changelog><![CDATA[First release of MC ItemArrange. Lays selected media items out at a fixed interval and snaps every item so its left edge sits on the grid line to its left. One dialog with two modes: Item end (each item starts a fixed number of seconds after the previous item ended, so unequal lengths never overlap) and Item start (each item starts a fixed number of seconds after the previous item started). Snap to grid is ticked by default and can be unticked to lay items out at exactly the interval without quantising. The first item keeps its position and merely snaps left; the rest follow in their current left-to-right order, across tracks. Locked items are skipped and reported, unselected members of a group follow it, and everything lands in a single undo step. The grid follows REAPER's current setting and snap tolerance is computed in the grid-index domain so items sitting exactly on a line are never pushed back a cell. Requires REAPER 6.0+ and ReaImGui 0.8+; SWS is optional but gives full grid support.
+----
+MC ItemArrange 首个版本。把选中的媒体对象按固定间隔摆开，同时让每个对象的左边界落在它左边的网格线上。一个对话框两个模式：结尾相隔（每个对象在上一个对象结尾之后固定秒数开始，长短不一也不会重叠）和起点相隔（比上一个对象起点晚固定秒数）。「Snap to grid」默认勾选，取消勾选就只按间隔精确摆开、不做量化。第一个对象保持原位、只向左吸附，其余按当前从左到右的顺序依次排列，可以跨轨道。锁定的对象跳过并提示，同组未选中的成员跟随，整次操作只产生一步撤销。网格跟随 REAPER 当前设置，吸附容差在网格索引域计算，正好压在网格线上的对象不会被多推一格。需要 REAPER 6.0 以上、ReaImGui 0.8 以上；SWS 可选，装了网格支持更全。]]></changelog>
 			</version>
 		</reapack>
 	</category>
