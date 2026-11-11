@@ -1,0 +1,14 @@
+{
+	"type": "script",
+	"category": "ItemArrange",
+	"files": {
+		"MC_ItemArrange.lua": {
+			"main": true
+		},
+		"ItemArrange_core.lua": {}
+	},
+	"version": "1.3.0",
+	"package": "ItemArrange",
+	"time": "2026-11-11T02:15:00.000Z",
+	"changeLog": "New warm look for the Reposition Items dialog: cream background, espresso title bar and a single terracotta accent used only for what is selected or confirms - the chosen mode, the ticked Snap to grid box, the OK button and a thin rule under the title bar. Small rounded corners, roomier spacing and taller OK/Cancel buttons. Segoe UI is now the preferred font (Tahoma, then the built-in face, as fallbacks). Arranging behaviour is unchanged.\n----\n「Reposition Items」对话框换成暖色外观：米白底、深咖啡标题栏，赤陶橙只用在选中和确认的地方——选中的模式、勾上的 Snap to grid、OK 按钮，以及标题栏下的一条细线。小圆角，间距更宽松，OK / Cancel 按钮更高。字体优先 Segoe UI（找不到时依次用 Tahoma、内置字体）。摆开逻辑没有变化。"
+}

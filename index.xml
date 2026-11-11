@@ -96,6 +96,13 @@ MC ChannelFit 首个正式版。按 Region 批量导出时，按实际内容决�
 ----
 MC ItemArrange 首个版本。把选中的媒体对象按固定间隔摆开，同时让每个对象的左边界落在它左边的网格线上。一个对话框两个模式：结尾相隔（每个对象在上一个对象结尾之后固定秒数开始，长短不一也不会重叠）和起点相隔（比上一个对象起点晚固定秒数）。「Snap to grid」默认勾选，取消勾选就只按间隔精确摆开、不做量化。第一个对象保持原位、只向左吸附，其余按当前从左到右的顺序依次排列，可以跨轨道。锁定的对象跳过并提示，同组未选中的成员跟随，整次操作只产生一步撤销。网格跟随 REAPER 当前设置，吸附容差在网格索引域计算，正好压在网格线上的对象不会被多推一格。需要 REAPER 6.0 以上、ReaImGui 0.8 以上；SWS 可选，装了网格支持更全。]]></changelog>
 			</version>
+			<version name="1.3.0" author="MC Scripts" time="2026-11-11T02:15:00.000Z">
+				<source file="MC_ItemArrange.lua" main="true">https://github.com/Echo722/MC-Scripts/raw/main/releases/ItemArrange/1.3.0/MC_ItemArrange.lua</source>
+				<source file="ItemArrange_core.lua">https://github.com/Echo722/MC-Scripts/raw/main/releases/ItemArrange/1.3.0/ItemArrange_core.lua</source>
+				<changelog><![CDATA[New warm look for the Reposition Items dialog: cream background, espresso title bar and a single terracotta accent used only for what is selected or confirms - the chosen mode, the ticked Snap to grid box, the OK button and a thin rule under the title bar. Small rounded corners, roomier spacing and taller OK/Cancel buttons. Segoe UI is now the preferred font (Tahoma, then the built-in face, as fallbacks). Arranging behaviour is unchanged.
+----
+「Reposition Items」对话框换成暖色外观：米白底、深咖啡标题栏，赤陶橙只用在选中和确认的地方——选中的模式、勾上的 Snap to grid、OK 按钮，以及标题栏下的一条细线。小圆角，间距更宽松，OK / Cancel 按钮更高。字体优先 Segoe UI（找不到时依次用 Tahoma、内置字体）。摆开逻辑没有变化。]]></changelog>
+			</version>
 		</reapack>
 	</category>
 </index>
